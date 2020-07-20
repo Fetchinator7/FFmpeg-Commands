@@ -32,7 +32,7 @@ For example, to extract the artwork from a file and include the entire ffmpeg ou
 ```python
 fc.FileOperations(file, generic_dir, print_ren_info=True).extract_artwork()
 ```
-All output messages can be toggled. See the [FileOperations __init__](https://github.com/Fetchinator7/Python-Presets/blob/master/ffmpeg_cmds.py#L39-L49)
+All output messages can be toggled. See the [FileOperations __init__](https://github.com/Fetchinator7/System-Commands/blob/master/ffmpeg_cmds.py#L39-L49)
 
 **(Required class initiation arguments have been omitted in the following method calls for the sake of conciseness.)**
 
