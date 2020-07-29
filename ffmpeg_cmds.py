@@ -8,34 +8,35 @@ import shutil
 import subprocess as sub
 import time
 
-
-def _is_type_or_print_err_and_quit(in_type, target_type, in_type_str):
-	"""Function to confirm method input(s) are the correct type """
-	if in_type is not target_type:
-		if target_type is paths.Path:
-			# To keep this cross-platform the target_type = paths.Path() so it knows which type to check
-			# and then confrim it's actually a Posix or Windows path.
-			if in_type is not paths.PosixPath and in_type is not paths.WindowsPath:
-				target_type_err_str = 'a pathlib PosixPath or WindowsPath'
+class VerifyInputType:
+	def is_type_or_print_err_and_quit(self, in_type, target_type, in_type_str):
+		"""Function to confirm method input(s) are the correct type """
+		print("The first one worked!")
+		if in_type is not target_type:
+			if target_type is paths.Path:
+				# To keep this cross-platform the target_type = paths.Path() so it knows which type to check
+				# and then confrim it's actually a Posix or Windows path.
+				if in_type is not paths.PosixPath and in_type is not paths.WindowsPath:
+					target_type_err_str = 'a pathlib PosixPath or WindowsPath'
+				else:
+					return False
+			elif target_type is int:
+				target_type_err_str = 'an int'
+			elif target_type is float:
+				target_type_err_str = 'a float'
+			elif target_type is bool:
+				target_type_err_str = 'True or False'
+			elif target_type is str:
+				target_type_err_str = 'a str'
+			elif target_type is list:
+				target_type_err_str = 'a list'
 			else:
-				return False
-		elif target_type is int:
-			target_type_err_str = 'an int'
-		elif target_type is float:
-			target_type_err_str = 'a float'
-		elif target_type is bool:
-			target_type_err_str = 'True or False'
-		elif target_type is str:
-			target_type_err_str = 'a str'
-		elif target_type is list:
-			target_type_err_str = 'a list'
-		else:
-			print(f'Error, "{target_type}," is not a type that can be checked in _is_type_or_print_err yet.')
+				print(f'Error, "{target_type}," is not a type that can be checked in _is_type_or_print_err yet.')
+				quit()
+			print(f'Error, {in_type_str} must be {target_type_err_str} not "{in_type}"')
 			quit()
-		print(f'Error, {in_type_str} must be {target_type_err_str} not "{in_type}"')
-		quit()
 
-class FileOperations:
+class FileOperations(VerifyInputType):
 	def __init__(self, in_path, out_dir, print_success=True, print_err=True,
 	             print_ren_info=False, print_ren_time=True, open_after_ren=False):
 		"""This class contains many different methods for altering video/audio files.\n
@@ -49,12 +50,12 @@ class FileOperations:
 		open_after_ren is True it will automatically open the output file(s) after they're done rendering."""
 		
 		# Run function to print an error and quit if the input type is not the correct type.
-		_is_type_or_print_err_and_quit(type(out_dir), paths.Path, 'out_dir')
-		_is_type_or_print_err_and_quit(type(print_success), bool, 'print_success')
-		_is_type_or_print_err_and_quit(type(print_err), bool, 'print_err')
-		_is_type_or_print_err_and_quit(type(print_ren_info), bool, 'print_ren_info')
-		_is_type_or_print_err_and_quit(type(print_ren_time), bool, 'print_ren_time')
-		_is_type_or_print_err_and_quit(type(open_after_ren), bool, 'open_after_ren')
+		self.is_type_or_print_err_and_quit(type(out_dir), paths.Path, 'out_dir')
+		self.is_type_or_print_err_and_quit(type(print_success), bool, 'print_success')
+		self.is_type_or_print_err_and_quit(type(print_err), bool, 'print_err')
+		self.is_type_or_print_err_and_quit(type(print_ren_info), bool, 'print_ren_info')
+		self.is_type_or_print_err_and_quit(type(print_ren_time), bool, 'print_ren_time')
+		self.is_type_or_print_err_and_quit(type(open_after_ren), bool, 'open_after_ren')
 		
 		# Pathlib path to a input file for the terminal command.
 		self.in_path = in_path
@@ -63,7 +64,7 @@ class FileOperations:
 		
 		# The concat method requires a list input, but otherwise it should just be one path.
 		if type(in_path) is not list:
-			_is_type_or_print_err_and_quit(type(in_path), paths.Path, 'in_path')
+			self.is_type_or_print_err_and_quit(type(in_path), paths.Path, 'in_path')
 			# Path to standard ffmpeg output file which is just the name of the input file in a different directory.
 			self.standard_out_path = paths.Path().joinpath(self.out_dir, self.in_path.name)
 		
@@ -143,8 +144,8 @@ class FileOperations:
 	def copy_over_metadata(self, copy_this_metadata_file, copy_chapters=True):
 		"""This method will copy any metadata values from copy_this_metadata_file to the output."""
 
-		_is_type_or_print_err_and_quit(type(copy_this_metadata_file), paths.Path, 'copy_this_metadata_file')
-		_is_type_or_print_err_and_quit(type(copy_chapters), bool, 'copy_chapters')
+		self.is_type_or_print_err_and_quit(type(copy_this_metadata_file), paths.Path, 'copy_this_metadata_file')
+		self.is_type_or_print_err_and_quit(type(copy_chapters), bool, 'copy_chapters')
 
 		ffmpeg_cmd = ['ffmpeg', '-i', self.in_path, '-i', copy_this_metadata_file]
 		if copy_chapters is False:
@@ -157,7 +158,7 @@ class FileOperations:
 	def change_file_name_and_meta_title(self, new_title):
 		"""This method changes the filename and metadata title of a file."""
 
-		_is_type_or_print_err_and_quit(type(new_title), str, 'new_title')
+		self.is_type_or_print_err_and_quit(type(new_title), str, 'new_title')
 		
 		# path object to rename the output basename.
 		full_out_path = paths.Path().joinpath(self.out_dir, new_title + self.in_path.suffix)
@@ -175,7 +176,7 @@ class FileOperations:
 		in_artwork is required.
 		NOTE: This method does not work if the input is a .m4a file and has chapters embedded."""
 		
-		_is_type_or_print_err_and_quit(type(in_artwork), paths.Path, 'in_artwork')
+		self.is_type_or_print_err_and_quit(type(in_artwork), paths.Path, 'in_artwork')
 
 		# The input artwork file does not have the ".jpg" extension so print an error.
 		if in_artwork.exists() and in_artwork.suffix != '.jpg':
@@ -309,7 +310,7 @@ class FileOperations:
 	def change_ext(self, new_ext):
 		"""This method changes the self.in_path extension to new_ext."""
 		
-		_is_type_or_print_err_and_quit(type(new_ext), str, 'new_ext')
+		self.is_type_or_print_err_and_quit(type(new_ext), str, 'new_ext')
 
 		# Path to output file with the new target extension.
 		new_ext_out_path = paths.Path().joinpath(self.out_dir, self.in_path.stem + new_ext)
@@ -337,9 +338,9 @@ class FileOperations:
 		NOTE: This method will remove any already existing chapter(s)
 		from the input because otherwise the output won't be trimmed."""
 		
-		_is_type_or_print_err_and_quit(type(start_timecode), str, 'start_timecode')
-		_is_type_or_print_err_and_quit(type(stop_timecode), str, 'stop_timecode')
-		_is_type_or_print_err_and_quit(type(codec_copy), bool, 'codec_copy')
+		self.is_type_or_print_err_and_quit(type(start_timecode), str, 'start_timecode')
+		self.is_type_or_print_err_and_quit(type(stop_timecode), str, 'stop_timecode')
+		self.is_type_or_print_err_and_quit(type(codec_copy), bool, 'codec_copy')
 
 		if start_timecode == '' and stop_timecode == '':
 			if self.print_err is True:
@@ -411,9 +412,9 @@ class FileOperations:
 		so the output is at least one hour in length.\n
 		codec_copy toggles whether or not to copy the input codec(s)"""
 
-		_is_type_or_print_err_and_quit(type(num_loop_times), int, 'num_loop_times')
-		_is_type_or_print_err_and_quit(type(loop_to_hours), int, 'loop_to_hours')
-		_is_type_or_print_err_and_quit(type(codec_copy), bool, 'codec_copy')
+		self.is_type_or_print_err_and_quit(type(num_loop_times), int, 'num_loop_times')
+		self.is_type_or_print_err_and_quit(type(loop_to_hours), int, 'loop_to_hours')
+		self.is_type_or_print_err_and_quit(type(codec_copy), bool, 'codec_copy')
 
 		stream_types = MetadataAcquisition(self.in_path, self.print_ren_info,
                                     	   False, False).return_stream_types()
@@ -475,7 +476,7 @@ class FileOperations:
 		(Output Basename-1.50x.mp3).
 		NOTE: This method only works with up to one audio and one video track."""
 
-		_is_type_or_print_err_and_quit(type(playback_speed), float, 'playback_speed')
+		self.is_type_or_print_err_and_quit(type(playback_speed), float, 'playback_speed')
 
 		stream_types = MetadataAcquisition(self.in_path, self.print_ren_info, False, False).return_stream_types()
 		if 'Video' in stream_types is False and 'Audio' in stream_types is False:
@@ -607,10 +608,10 @@ class FileOperations:
 		shortest sets the length of the output video to the length of the shortest input.\n
 		If omitted/set to False then the length of the output will be the length of the longest input."""
 		
-		_is_type_or_print_err_and_quit(type(in_aud_path_list), list, 'in_aud_path')
+		self.is_type_or_print_err_and_quit(type(in_aud_path_list), list, 'in_aud_path')
 		for aud_path in in_aud_path_list:
-			_is_type_or_print_err_and_quit(type(aud_path), paths.Path, 'aud_path')
-		_is_type_or_print_err_and_quit(type(shortest), bool, 'shortest')
+			self.is_type_or_print_err_and_quit(type(aud_path), paths.Path, 'aud_path')
+		self.is_type_or_print_err_and_quit(type(shortest), bool, 'shortest')
 
 		ffmpeg_cmd = ['ffmpeg', '-i', self.in_path, '-map', '0', '-map', '-0:a']
 		
@@ -651,11 +652,11 @@ class FileOperations:
 		# Future reader, multiple audio channels from the input could be retained by running
 		# MetadataAcquisition().return_stream_types() and specifying to copy over every audio stream individually.
 		
-		_is_type_or_print_err_and_quit(type(in_aud_path_list), list, 'in_aud_path_list')
+		self.is_type_or_print_err_and_quit(type(in_aud_path_list), list, 'in_aud_path_list')
 		for aud_path in in_aud_path_list:
-			_is_type_or_print_err_and_quit(type(aud_path), paths.Path, 'aud_path')
-		_is_type_or_print_err_and_quit(type(codec_copy), bool, 'codec_copy')
-		_is_type_or_print_err_and_quit(type(length_vid), bool, 'length_vid')
+			self.is_type_or_print_err_and_quit(type(aud_path), paths.Path, 'aud_path')
+		self.is_type_or_print_err_and_quit(type(codec_copy), bool, 'codec_copy')
+		self.is_type_or_print_err_and_quit(type(length_vid), bool, 'length_vid')
 
 		ffmpeg_cmd = ['ffmpeg', '-i', self.in_path]
 
@@ -705,9 +706,9 @@ class FileOperations:
 		custom_db can be set to a string to change the file volume by that amount ('-0.0 dB' or '0.0 dB')\n
 		if print_vol_value is set to True then print the dB number the volume was changed by.\n"""
 		
-		_is_type_or_print_err_and_quit(type(custom_db), str, 'custom_db')
-		_is_type_or_print_err_and_quit(type(aud_only), bool, 'aud_only')
-		_is_type_or_print_err_and_quit(type(print_vol_value), bool, 'print_vol_value')
+		self.is_type_or_print_err_and_quit(type(custom_db), str, 'custom_db')
+		self.is_type_or_print_err_and_quit(type(aud_only), bool, 'aud_only')
+		self.is_type_or_print_err_and_quit(type(print_vol_value), bool, 'print_vol_value')
 
 		# Set the custom_db from the loudnorm_stereo method to change the output volume.
 		FileOperations.loudnorm_stereo(self, custom_db=custom_db, aud_only=aud_only, print_vol_value=print_vol_value)
@@ -722,10 +723,10 @@ class FileOperations:
 		NOTE: This method does not retain all subtitle tracks."""
 		
 		# Confirm input types are valid.
-		_is_type_or_print_err_and_quit(type(custom_db), str, 'custom_db')
-		_is_type_or_print_err_and_quit(type(aud_only), bool, 'aud_only')
-		_is_type_or_print_err_and_quit(type(print_vol_value), bool, 'print_vol_value')
-		_is_type_or_print_err_and_quit(type(_do_render), bool, '_do_render')
+		self.is_type_or_print_err_and_quit(type(custom_db), str, 'custom_db')
+		self.is_type_or_print_err_and_quit(type(aud_only), bool, 'aud_only')
+		self.is_type_or_print_err_and_quit(type(print_vol_value), bool, 'print_vol_value')
+		self.is_type_or_print_err_and_quit(type(_do_render), bool, '_do_render')
 		
 		if _do_render is False and aud_only is True:
 			print('Error, in order for _do_render to be False aud_only must also be False.')
@@ -809,8 +810,8 @@ class FileOperations:
 		out_aud_ext allows you sto specify the the output extension should be.
 		order_out_names will append "-Audio Track {number}" to the output basename(s)"""
 		
-		_is_type_or_print_err_and_quit(type(out_aud_ext), str, 'out_aud_ext')
-		_is_type_or_print_err_and_quit(type(order_out_names), bool, 'order_out_names')
+		self.is_type_or_print_err_and_quit(type(out_aud_ext), str, 'out_aud_ext')
+		self.is_type_or_print_err_and_quit(type(order_out_names), bool, 'order_out_names')
 
 		# Option to change the extension for the output audio.
 		if out_aud_ext == '':
@@ -883,12 +884,12 @@ class FileOperations:
 		the automatically computed second to begin fading at the end of the input.
 		e.g., start fading at 1 minute and 9 seconds in = "69", then the rest of the duration would be black/silent."""
 
-		_is_type_or_print_err_and_quit(type(fade_vid), bool, 'fade_vid')
-		_is_type_or_print_err_and_quit(type(fade_aud), bool, 'fade_aud')
-		_is_type_or_print_err_and_quit(type(fade_begin), bool, 'fade_begin')
-		_is_type_or_print_err_and_quit(type(fade_end), bool, 'fade_end')
-		_is_type_or_print_err_and_quit(type(fade_dur_sec), int, 'fade_dur_sec')
-		_is_type_or_print_err_and_quit(type(fade_out_at_sec), int, 'fade_out_at_sec')
+		self.is_type_or_print_err_and_quit(type(fade_vid), bool, 'fade_vid')
+		self.is_type_or_print_err_and_quit(type(fade_aud), bool, 'fade_aud')
+		self.is_type_or_print_err_and_quit(type(fade_begin), bool, 'fade_begin')
+		self.is_type_or_print_err_and_quit(type(fade_end), bool, 'fade_end')
+		self.is_type_or_print_err_and_quit(type(fade_dur_sec), int, 'fade_dur_sec')
+		self.is_type_or_print_err_and_quit(type(fade_out_at_sec), int, 'fade_out_at_sec')
 
 		if fade_dur_sec <= 0:
 			print(f'Error, fade_dur_sec has to be greater than 0 seconds, not "{fade_dur_sec}"')
@@ -969,7 +970,7 @@ class FileOperations:
 		[L100, R100, L75] pan the first audio channel all the way to the left, the second audio channel all the way to
 		the right, and the third channel 75% of the way to the left."""
 
-		_is_type_or_print_err_and_quit(type(pan_strm), list, 'pan_strm')
+		self.is_type_or_print_err_and_quit(type(pan_strm), list, 'pan_strm')
 
 		# Confirm input is valid (such as L100).
 		ffmpeg_cmd = ['ffmpeg', '-i', self.in_path, 'pan command']
@@ -1010,7 +1011,7 @@ class FileOperations:
 		"""This method will pan the main input stereo audio to the left, and the second stereo input audio to the right for one stereo output.
 		NOTE: The default self.in_path will be used as the input for the left audio channel."""
 
-		_is_type_or_print_err_and_quit(type(right_aud_in_path), paths.Path, 'right_aud_in_path')
+		self.is_type_or_print_err_and_quit(type(right_aud_in_path), paths.Path, 'right_aud_in_path')
 
 		main_in_strm_types = MetadataAcquisition(self.in_path).return_stream_types()
 		main_in_has_aud = 'Audio' in main_in_strm_types
@@ -1036,7 +1037,7 @@ class FileOperations:
 		must contain two numbers seperated by a colon\n
 		"1920" vs "1920:1080"."""
 
-		_is_type_or_print_err_and_quit(type(keep_aspect_ratio_input_width), str, 'scale_dim')
+		self.is_type_or_print_err_and_quit(type(keep_aspect_ratio_input_width), str, 'scale_dim')
 		if keep_aspect_ratio_input_width != '' and conform_to_dimensions != '':
 			print('Error, keep_aspect_ratio_width and conform_to_dimensions are mutually exclusive but both were specified.')
 			return False
@@ -1136,7 +1137,7 @@ class FileOperations:
 		"""This method rotates the input frame by rotate_by_degrees degrees.\n
 		NOTE: rotate_by_degrees can only be set to 90, 180, or 270, otherwise nothing changes."""
 
-		_is_type_or_print_err_and_quit(type(rotate_frame_by_degrees), str, 'rotate_by_degrees')
+		self.is_type_or_print_err_and_quit(type(rotate_frame_by_degrees), str, 'rotate_by_degrees')
 
 		strm_types = MetadataAcquisition(self.in_path).return_stream_types()
 		has_vid = 'Video' in strm_types
@@ -1157,9 +1158,9 @@ class FileOperations:
 		hflip flips the footage horizontally and vflip flips the footage vertically.\n
 		NOTE: This method doesn't preserve video artwork."""
 
-		_is_type_or_print_err_and_quit(type(rotate_footage_by_degrees), str, 'rotate_footage_by_degrees')
-		_is_type_or_print_err_and_quit(type(hflip), bool, 'hflip')
-		_is_type_or_print_err_and_quit(type(vflip), bool, 'vflip')
+		self.is_type_or_print_err_and_quit(type(rotate_footage_by_degrees), str, 'rotate_footage_by_degrees')
+		self.is_type_or_print_err_and_quit(type(hflip), bool, 'hflip')
+		self.is_type_or_print_err_and_quit(type(vflip), bool, 'vflip')
 
 		strm_types = MetadataAcquisition(self.in_path).return_stream_types()
 		has_vid = 'Video' in strm_types
@@ -1205,10 +1206,10 @@ class FileOperations:
 		_loop_times is local because it's only designed to be used by FileOperations.loop\n
 		See "https://trac.ffmpeg.org/wiki/Concatenate" for ffmpeg concatenation documentation."""
 		
-		_is_type_or_print_err_and_quit(type(new_basename), str, 'new_basename')
-		_is_type_or_print_err_and_quit(type(new_ext), str, 'new_ext')
-		_is_type_or_print_err_and_quit(type(codec_copy), bool, 'codec_copy')
-		_is_type_or_print_err_and_quit(type(_loop_times), int, '_loop_times')
+		self.is_type_or_print_err_and_quit(type(new_basename), str, 'new_basename')
+		self.is_type_or_print_err_and_quit(type(new_ext), str, 'new_ext')
+		self.is_type_or_print_err_and_quit(type(codec_copy), bool, 'codec_copy')
+		self.is_type_or_print_err_and_quit(type(_loop_times), int, '_loop_times')
 		
 		# Set in_path_list to a list of inputs from self.in_path for the sake of code clarity.
 		in_path_list = self.in_path
@@ -1314,11 +1315,11 @@ class FileOperations:
 		print_vol_value toggles whether or not to display the dB amount the output volume was changed by."""
 		
 		# Confirm all the inputs are the correct types.
-		_is_type_or_print_err_and_quit(type(new_res_dimensions), str, 'new_res_dimensions')
-		_is_type_or_print_err_and_quit(type(new_ext), str, 'new_ext')
-		_is_type_or_print_err_and_quit(type(video_only), bool, 'video_only')
-		_is_type_or_print_err_and_quit(type(custom_db), str, 'custom_db')
-		_is_type_or_print_err_and_quit(type(print_vol_value), bool, 'print_vol_value')
+		self.is_type_or_print_err_and_quit(type(new_res_dimensions), str, 'new_res_dimensions')
+		self.is_type_or_print_err_and_quit(type(new_ext), str, 'new_ext')
+		self.is_type_or_print_err_and_quit(type(video_only), bool, 'video_only')
+		self.is_type_or_print_err_and_quit(type(custom_db), str, 'custom_db')
+		self.is_type_or_print_err_and_quit(type(print_vol_value), bool, 'print_vol_value')
 		
 		# Confirm new_ext is valid.
 		if self.in_path.suffix != '.mp4' and self.in_path.suffix != '.mov' and self.in_path.suffix != '.mkv':
@@ -1372,7 +1373,7 @@ class FileOperations:
 	def embed_subs(self, in_subs_list):
 		"""This method will embed the input subtitle file(s) into the output.\n
 		in_subs_list must be a list of pathlib paths to the subtitle files to embed."""
-		_is_type_or_print_err_and_quit(type(in_subs_list), list, 'in_subs_list')
+		self.is_type_or_print_err_and_quit(type(in_subs_list), list, 'in_subs_list')
 		# temp_sub_dir = paths.Path.joinpath(self.out_paths_list, 'temp_directory_to_embed_subtitle_files.')
 		# paths.Path.mkdir(temp_sub_dir)
 		#
@@ -1402,7 +1403,7 @@ class FileOperations:
 		"""This method will extract subtitles from the input then output each language to its own file.\n
 		By default metadata is included (artist, chapters, etc.)
 		but include_other_metadata can be set to False to disable this."""
-		_is_type_or_print_err_and_quit(type(include_other_metadata), bool, 'include_other_metadata')
+		self.is_type_or_print_err_and_quit(type(include_other_metadata), bool, 'include_other_metadata')
 
 		out_paths_list = []
 		ffmpeg_cmd = ['ffmpeg', '-i', self.in_path, '-y']
@@ -1447,8 +1448,8 @@ class FileOperations:
 		If print_new_chapters is True print the timecode and title for each new chapter."""
 		
 		# Confirm all inputs are the correct type and if they aren't print an error and quit.
-		_is_type_or_print_err_and_quit(type(timecode_title_list), list, 'timecode_title_list')
-		_is_type_or_print_err_and_quit(type(add_chap_headings), bool, 'add_chap_headings')
+		self.is_type_or_print_err_and_quit(type(timecode_title_list), list, 'timecode_title_list')
+		self.is_type_or_print_err_and_quit(type(add_chap_headings), bool, 'add_chap_headings')
 
 		# Render temporary file of the input except with any already existing chapters removed.
 		# Otherwise it just keeps the original chapters without allowing for new ones.
@@ -1526,7 +1527,7 @@ class FileOperations:
 		if convert_str_timecode_to_sec is specified it will convert a string of a timecode into seconds,
 		otherwise it's the self.in_path duration in seconds."""
 
-		_is_type_or_print_err_and_quit(type(convert_str_timecode_to_sec), str, 'convert_str_timecode_to_sec')
+		self.is_type_or_print_err_and_quit(type(convert_str_timecode_to_sec), str, 'convert_str_timecode_to_sec')
 
 		if convert_str_timecode_to_sec != '':
 			duration = convert_str_timecode_to_sec
@@ -1610,7 +1611,8 @@ class FileOperations:
 		ffmpeg_cmd += ('-map', ('-0:v:'+rm_strm))
 		return ffmpeg_cmd
 
-class MetadataAcquisition:
+
+class MetadataAcquisition(VerifyInputType):
 	"""This class provides methods to get file metadata.
 	NOTE: return_metadata is the only method designed to be used.\n"""
 	
@@ -1618,10 +1620,10 @@ class MetadataAcquisition:
 		"""Requires a path object to an input file and optional file info printing"""
 		
 		# Run function to print an error and quit if the input type is not valid.
-		_is_type_or_print_err_and_quit(type(in_path), paths.Path, 'in_path')
-		_is_type_or_print_err_and_quit(type(print_all_info), bool, 'print_all_info')
-		_is_type_or_print_err_and_quit(type(print_scan_time), bool, 'print_scan_time')
-		_is_type_or_print_err_and_quit(type(print_meta_value), bool, 'print_meta_value')
+		self.is_type_or_print_err_and_quit(type(in_path), paths.Path, 'in_path')
+		self.is_type_or_print_err_and_quit(type(print_all_info), bool, 'print_all_info')
+		self.is_type_or_print_err_and_quit(type(print_scan_time), bool, 'print_scan_time')
+		self.is_type_or_print_err_and_quit(type(print_meta_value), bool, 'print_meta_value')
 		
 		# Create path object of input file.
 		self.in_path = paths.Path(in_path)
@@ -1891,7 +1893,7 @@ class MetadataAcquisition:
 			e.g., "File Name-.en.vtt returns "eng" (english subtitles) = '-metadata:s:s: language=eng'\n
 		if check_file is False return the dictionary."""
 
-		_is_type_or_print_err_and_quit(type(check_file), bool, 'check_file')
+		self.is_type_or_print_err_and_quit(type(check_file), bool, 'check_file')
 		
 		# Dictionary that holds a subtitle file extension which represents the language and the keyword
 		# so ffmpeg can assign the metadata for that file to the correct language.
@@ -2303,7 +2305,7 @@ class Visualizer:
 		pass
 
 
-class Render:
+class Render(VerifyInputType):
 	"""This class runs the terminal command to achieve the desired output."""
 	def __init__(self, input_path__pathlib_object_or_list, out_file_or_out_list, render_cmd, print_success=True,
 				 print_err=True, print_ren_info=False, print_ren_time=True, open_after_ren=False):
