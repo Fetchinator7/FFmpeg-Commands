@@ -346,7 +346,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 		if stop_timecode != '':
 			if self._return_input_duration_in_sec(stop_timecode) > sec_dur:
 				if self.print_err is True:
-					print(f'''Error, the output won't go until end timecode "{stop_timecode}" '''
+					print(f'''Error, the output can't go until end timecode "{stop_timecode}" '''
 					      f'''because that's greater than the length of input:\n"{self.in_path}"\n''')
 
 		# -ss is the timecode to begin file at and -to is the timecode to end at.
@@ -1072,8 +1072,9 @@ class FileOperations(VerifyInputType.VerifyInputType):
 	
 	def crop_detect_black_bars(self):
 		"""If any black bars from the input video are detected (like if the footage is 4:3 but the frame is 16:9)
-		they will be cropped out."""
+		they will be cropped out. However, this has issues calculating the right dimensions if the source video is dark."""
 		# Get the dimensions to crop out black bars.
+		# Return crop_detect as the first thing in the list, then get the first (and only) item in that list; the crop dimensions.
 		crop_dim = MetadataAcquisition.MetadataAcquisition(self.in_path, print_scan_time=self.print_ren_time).return_metadata(crop_detect=1)[0]
 
 		if crop_dim is None:
@@ -1082,7 +1083,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 			return False
 
 		# The dimensions are returned with pixel trim/offset indicated at the end so if both of those
-		#   are 0 then there's nothing to trim. 920:1080:0:0
+		# 	are 0 then there's nothing to trim. 1920:1080:0:0
 		# See https://video.stackexchange.com/questions/4563/how-can-i-crop-a-video-with-ffmpeg#4571
 		# https://www.bogotobogo.com/FFMpeg/ffmpeg_cropdetect_ffplay.php
 		if crop_dim[-4:] == ':0:0':
@@ -1091,11 +1092,10 @@ class FileOperations(VerifyInputType.VerifyInputType):
 			return False
 
 		elif crop_dim is not None:
+			print(crop_dim)
 			# Filter to crop the output.
-			# ffmpeg_cmd = ['ffmpeg', '-i', self.in_path, '-map', '0', '-filter:v',
-			#               f'crop={crop_dim[0]}', '-c:a', 'copy', '-c:s', 'copy']
 			ffmpeg_cmd = ['ffmpeg', '-i', self.in_path, '-map', '0', '-filter:v',
-			              f'crop=960:720:160:0', '-c:a', 'copy', '-c:s', 'copy']
+			              f'crop={crop_dim}', '-c:a', 'copy', '-c:s', 'copy']
 
 			# Remove any already existing artwork stream.
 			ffmpeg_cmd = self._add_to_ren_cmd__rm_art_stream_index_selector(ffmpeg_cmd)
