@@ -299,7 +299,7 @@ class FileOperations(VerifyInputType):
 			Render(self.in_path, new_ext_out_path, ffmpeg_cmd, self.print_success, self.print_err, self.print_ren_info,
 			       self.print_ren_time, self.open_after_ren).check_depend_then_ren_and_embed_original_metadata()
 	
-	def trim(self, start_timecode='', stop_timecode='', codec_copy=False):
+	def trim(self, start_timecode='', stop_timecode='', codec_copy=False, verify_trim_ranges=True):
 		"""This method changes the duration of the input from start_timecode to stop_timecode\n
 		Timecode format = "00:00:00.00" (hours, minutes, seconds, and fractions of seconds.)\n
 		At least start_timecode or stop_timecode must be set, but if one of them isn't set it will
@@ -329,14 +329,15 @@ class FileOperations(VerifyInputType):
 		has_aud_stream = 'Audio' in stream_types
 		if has_vid_stream is False and has_aud_stream is False:
 			if self.print_err is True:
-				print(f'Error, no video or audio to trim were found from input\n"{self.in_path}"')
+				print(f'Error, no video or audio streams to trim were found from input\n"{self.in_path}"')
 			return False
 		
-		sec_dur = self._return_input_duration_in_sec()
-		if sec_dur is None or sec_dur < 1:
-			if self.print_err is True:
-				print(f'''Error, there's no length to trim from input "{self.in_path}"\n''')
-			return False
+		if verify_trim_ranges == True:
+			sec_dur = self._return_input_duration_in_sec()
+			if sec_dur is None or sec_dur < 1:
+				if self.print_err is True:
+					print(f'''Error, there's no length to trim from input "{self.in_path}"\n''')
+				return False
 		
 		if start_timecode != '':
 			if self._return_input_duration_in_sec(start_timecode) > sec_dur:
