@@ -266,7 +266,8 @@ class FileOperations(VerifyInputType):
 		# Print an error if the input doesn't have artwork and copy to output.
 		stream_types = MetadataAcquisition(self.in_path, self.print_ren_info, False, False).return_stream_types()
 		art_stream = 'Artwork' in stream_types
-		if art_stream is None:
+		if art_stream is None or art_stream is False:
+			print(f'Error, no artwork found in input:\n{self.in_path}\nFor output:\n{self.standard_out_path}')
 			return False
 		else:
 			ffmpeg_cmd = ['ffmpeg', '-i', self.in_path, '-map', '0', '-c', 'copy']
