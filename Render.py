@@ -1,8 +1,8 @@
-import FileOperations
-
 import pathlib as paths
 import subprocess as sub
 import time
+
+# NOTE: the FileOperations class is imported below.
 
 class Render:
 	"""This class runs the terminal command to achieve the desired output."""
@@ -128,6 +128,8 @@ class Render:
 		
 		# If the output file exists then run the attempt_embed_metadata_silently method.
 		if out_file_exists_result is True:
+			# NOTE: This import is down here to avoid an infinite import.
+			from FileOperations import FileOperations
 			# This will attempt to embed any metadata (mainly for artwork) from the original file into the output.
 			# (Due to how ffmpeg works, the artwork can't always be copied in one command.)
 			# Create temporary output file with the original metadata embedded, delete the original output without the metadata,
@@ -137,7 +139,7 @@ class Render:
 				                                                         '--temp_dir_to_embed_metadata_silently')
 				paths.Path.mkdir(temp_directory_to_embed_metadata)
 				temp_out_file = paths.Path().joinpath(temp_directory_to_embed_metadata, out_path.stem + out_path.suffix)
-				FileOperations.FileOperations(out_path, temp_directory_to_embed_metadata, False,
+				FileOperations(out_path, temp_directory_to_embed_metadata, False,
 				               self.print_ren_info, False, False).copy_over_metadata(in_meta_file, copy_chapters)
 				if temp_out_file.exists() is False:
 					if self.print_err is True:
@@ -147,11 +149,11 @@ class Render:
 					out_path.unlink()
 					temp_out_file.rename(out_path)
 				if artwork is True:
-					temp_art = FileOperations.FileOperations(in_meta_file, temp_directory_to_embed_metadata, False,
+					temp_art = FileOperations(in_meta_file, temp_directory_to_embed_metadata, False,
 								self.print_ren_info, False, False).extract_artwork()
 					if temp_art is not False:
 						if temp_art.exists():
-							FileOperations.FileOperations(out_path, temp_directory_to_embed_metadata, False,
+							FileOperations(out_path, temp_directory_to_embed_metadata, False,
 										   self.print_ren_info, False, False).embed_artwork(temp_art)
 							temp_art.unlink()
 							out_path.unlink()
