@@ -3,12 +3,11 @@ import math
 import pathlib as paths
 import shutil
 
-import VerifyInputType
-import MetadataAcquisition
-import Render
+from VerifyInputType import VerifyInputType
+from MetadataAcquisition import MetadataAcquisition
+from Render import Render
 
-
-class FileOperations(VerifyInputType.VerifyInputType):
+class FileOperations(VerifyInputType):
 	def __init__(self, in_path, out_dir, print_success=True, print_err=True,
 	             print_ren_info=False, print_ren_time=True, open_after_ren=False):
 		"""This class contains many different methods for altering video/audio files.\n
@@ -110,7 +109,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 		# Append output path to the ffmpeg_cmd list.
 		ffmpeg_cmd.append(self.standard_out_path)
 		
-		Render.Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success, self.print_err,
+		Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success, self.print_err,
 		       self.print_ren_info, self.print_ren_time, self.open_after_ren).check_depend_then_ren()
 	
 	def copy_over_metadata(self, copy_this_metadata_file, copy_chapters=True):
@@ -124,7 +123,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 			ffmpeg_cmd += ('-map_chapters', '-1')
 		ffmpeg_cmd += ['-map', '0', '-c', 'copy', '-map_metadata', '1', self.standard_out_path]
 
-		Render.Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success, self.print_err,
+		Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success, self.print_err,
 		       self.print_ren_info, self.print_ren_time, self.open_after_ren).check_depend_then_ren()
 
 	def change_file_name_and_meta_title(self, new_title):
@@ -140,7 +139,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 		
 		# Run the check_depend_then_ren method in the Render class to check that the input file and output directory
 		#   exist then render the output file with the given ffmpeg command.
-		Render.Render(self.in_path, full_out_path, ffmpeg_cmd, self.print_success, self.print_err,
+		Render(self.in_path, full_out_path, ffmpeg_cmd, self.print_success, self.print_err,
 		       self.print_ren_info, self.print_ren_time, self.open_after_ren).check_depend_then_ren()
 	
 	def embed_artwork(self, in_artwork):
@@ -181,7 +180,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 			#   and 'png', '-disposition:v:1', 'attached_pic' is to embed the artwork.
 			ffmpeg_cmd = ['ffmpeg', '-i', temp_rm_artwork_path, '-i', in_artwork, '-map', '0', '-c', 'copy',
 			              '-map', '1', '-c:v:1', 'png', '-disposition:v:1', 'attached_pic', self.standard_out_path]
-			Render.Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success,
+			Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success,
 				   self.print_err, self.print_ren_info, self.print_ren_time).check_depend_then_ren()
 			# Delete the temporary file that didn't have any artwork that was used as the input to embed the artwork.
 			temp_rm_artwork_path.unlink()
@@ -191,7 +190,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 			# file.)
 			atomic_parsley_cmd = ['AtomicParsley', temp_rm_artwork_path, '--overWrite', '--artwork', in_artwork]
 			# Render with AtomicParsley
-			ren_result = Render.Render(temp_rm_artwork_path, self.standard_out_path, atomic_parsley_cmd, 
+			ren_result = Render(temp_rm_artwork_path, self.standard_out_path, atomic_parsley_cmd, 
 			                    self.print_success, self.print_err, self.print_ren_info, self.print_ren_time,
 			                    self.open_after_ren).run_terminal_cmd(append_hide_banner=False, append_faststart=False)
 			# AtomicParsley creates a duplicate artwork file NAME-resized-0000.jpg so delete that temporary file.
@@ -235,7 +234,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 		# then deselect every other video stream except the artwork stream ("-0:V") and output to a jpg file.
 		ffmpeg_cmd = ['ffmpeg', '-i', self.in_path, '-map', '0:v?', '-map', '-0:V?', '-c', 'copy', art_ext_out_path]
 
-		in_strms = MetadataAcquisition.MetadataAcquisition(self.in_path).return_stream_types()
+		in_strms = MetadataAcquisition(self.in_path).return_stream_types()
 		art_exists = 'Artwork' in in_strms
 		if art_exists is False:
 			if self.print_err is True:
@@ -244,7 +243,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 		
 		# Run command to create new .jpg file from input artwork.
 		# exists_result will either be True or False depending on whether or not the output file exists.
-		exists_result = Render.Render(self.in_path, art_ext_out_path, ffmpeg_cmd, self.print_success, self.print_err,
+		exists_result = Render(self.in_path, art_ext_out_path, ffmpeg_cmd, self.print_success, self.print_err,
 		                       self.print_ren_info, self.print_ren_time,
 		                       self.open_after_ren).check_depend_then_ren(append_faststart=False)
 		return art_ext_out_path
@@ -259,22 +258,23 @@ class FileOperations(VerifyInputType.VerifyInputType):
 			# AtomicParsley command syntax (change the artwork of the output file directly
 			# without creating another file.)
 			atomic_parsley_cmd = ['AtomicParsley', self.standard_out_path, '--artwork', 'REMOVE_ALL', '--overWrite']
-			ren_result = Render.Render(self.in_path, self.standard_out_path, atomic_parsley_cmd, self.print_success,
+			ren_result = Render(self.in_path, self.standard_out_path, atomic_parsley_cmd, self.print_success,
 								self.print_err, self.print_ren_info, self.print_ren_time,
 			                    self.open_after_ren).run_terminal_cmd(append_hide_banner=False, append_faststart=False)
 			return ren_result
 
 		# Print an error if the input doesn't have artwork and copy to output.
-		stream_types = MetadataAcquisition.MetadataAcquisition(self.in_path, self.print_ren_info, False, False).return_stream_types()
+		stream_types = MetadataAcquisition(self.in_path, self.print_ren_info, False, False).return_stream_types()
 		art_stream = 'Artwork' in stream_types
-		if art_stream is None:
+		if art_stream is None or art_stream is False and self.print_err is True:
+			print(f'Error, no artwork found in input:\n{self.in_path}\nFor output:\n{self.standard_out_path}')
 			return False
 		else:
 			ffmpeg_cmd = ['ffmpeg', '-i', self.in_path, '-map', '0', '-c', 'copy']
 			ffmpeg_cmd = self._add_to_ren_cmd__rm_art_stream_index_selector(ffmpeg_cmd)
 			ffmpeg_cmd.append(self.standard_out_path)
 			
-			Render.Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success,
+			Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success,
 				   self.print_err, self.print_ren_info, self.print_ren_time,
 			       self.open_after_ren).check_depend_then_ren(append_faststart=False)
 		return True
@@ -296,10 +296,10 @@ class FileOperations(VerifyInputType.VerifyInputType):
 			print(f'Error, target output extension, "{new_ext_out_path.suffix}" is the same as '
 			      f'the input extension so the target output file, "{new_ext_out_path}" was just copied.')
 		else:
-			Render.Render(self.in_path, new_ext_out_path, ffmpeg_cmd, self.print_success, self.print_err, self.print_ren_info,
+			Render(self.in_path, new_ext_out_path, ffmpeg_cmd, self.print_success, self.print_err, self.print_ren_info,
 			       self.print_ren_time, self.open_after_ren).check_depend_then_ren_and_embed_original_metadata()
 	
-	def trim(self, start_timecode='', stop_timecode='', codec_copy=False):
+	def trim(self, start_timecode='', stop_timecode='', codec_copy=False, verify_trim_ranges=True):
 		"""This method changes the duration of the input from start_timecode to stop_timecode\n
 		Timecode format = "00:00:00.00" (hours, minutes, seconds, and fractions of seconds.)\n
 		At least start_timecode or stop_timecode must be set, but if one of them isn't set it will
@@ -323,20 +323,21 @@ class FileOperations(VerifyInputType.VerifyInputType):
 				print(f'Error, start_timecode and stop_timecode are both set to "{start_timecode}" so no output will be produced.')
 			return False
 		
-		stream_types = MetadataAcquisition.MetadataAcquisition(self.in_path, self.print_ren_info,
+		stream_types = MetadataAcquisition(self.in_path, self.print_ren_info,
 										   False, False).return_stream_types()
 		has_vid_stream = 'Video' in stream_types
 		has_aud_stream = 'Audio' in stream_types
 		if has_vid_stream is False and has_aud_stream is False:
 			if self.print_err is True:
-				print(f'Error, no video or audio to trim were found from input\n"{self.in_path}"')
+				print(f'Error, no video or audio streams to trim were found from input\n"{self.in_path}"')
 			return False
 		
-		sec_dur = self._return_input_duration_in_sec()
-		if sec_dur is None or sec_dur < 1:
-			if self.print_err is True:
-				print(f'''Error, there's no length to trim from input "{self.in_path}"\n''')
-			return False
+		if verify_trim_ranges == True:
+			sec_dur = self._return_input_duration_in_sec()
+			if sec_dur is None or sec_dur < 1:
+				if self.print_err is True:
+					print(f'''Error, there's no length to trim from input "{self.in_path}"\n''')
+				return False
 		
 		if start_timecode != '':
 			if self._return_input_duration_in_sec(start_timecode) > sec_dur:
@@ -362,18 +363,18 @@ class FileOperations(VerifyInputType.VerifyInputType):
 		if self.in_path.suffix == '.m4a':
 			ffmpeg_cmd += ('-c', 'copy')
 			ffmpeg_cmd += end_cmd
-			Render.Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success,
+			Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success,
 				   self.print_err, self.print_ren_info, self.print_ren_time,
 			       self.open_after_ren).check_depend_then_ren()
 		elif codec_copy is True:
 			ffmpeg_cmd += ('-map', '0', '-c', 'copy')
 			ffmpeg_cmd += end_cmd
-			Render.Render(self.in_path, self.standard_out_path, ffmpeg_cmd,
+			Render(self.in_path, self.standard_out_path, ffmpeg_cmd,
                    self.print_success, self.print_err, self.print_ren_info,
 				   self.print_ren_time, self.open_after_ren).check_depend_then_ren()
 		else:
 			ffmpeg_cmd += end_cmd
-			Render.Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success,
+			Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success,
 				   self.print_err, self.print_ren_info, self.print_ren_time,
 			       self.open_after_ren).check_depend_then_ren_and_embed_original_metadata(artwork=True)
 
@@ -388,7 +389,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 		self.is_type_or_print_err_and_quit(type(loop_to_hours), int, 'loop_to_hours')
 		self.is_type_or_print_err_and_quit(type(codec_copy), bool, 'codec_copy')
 
-		stream_types = MetadataAcquisition.MetadataAcquisition(self.in_path, self.print_ren_info,
+		stream_types = MetadataAcquisition(self.in_path, self.print_ren_info,
                                     	   False, False).return_stream_types()
 		has_vid_stream = 'Video' in stream_types
 		has_aud_stream = 'Audio' in stream_types
@@ -450,7 +451,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 
 		self.is_type_or_print_err_and_quit(type(playback_speed), float, 'playback_speed')
 
-		stream_types = MetadataAcquisition.MetadataAcquisition(self.in_path, self.print_ren_info, False, False).return_stream_types()
+		stream_types = MetadataAcquisition(self.in_path, self.print_ren_info, False, False).return_stream_types()
 		if 'Video' in stream_types is False and 'Audio' in stream_types is False:
 			if self.print_err is True:
 				print(f'\nError, there are not any video or audio streams to change the speed for from input:\n"{self.in_path}"\n')
@@ -502,7 +503,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 			ffmpeg_cmd += ('-map', '[a]')
 		ffmpeg_cmd.append(self.standard_out_path)
 
-		Render.Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success, self.print_err, self.print_ren_info,
+		Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success, self.print_err, self.print_ren_info,
 			   self.print_ren_time, self.open_after_ren).check_depend_then_ren_and_embed_original_metadata(artwork=True)
 		# Rename the output to have the new speed on the end.
 		# Rename it here became the original output loses artwork,
@@ -520,7 +521,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 		NOTE: This automatically removes subtitles and chapters."""
 		ffmpeg_cmd = ['ffmpeg', '-i', self.in_path, '-map', '0', '-map', '-0:s']
 
-		strm_types = MetadataAcquisition.MetadataAcquisition(self.in_path).return_stream_types()
+		strm_types = MetadataAcquisition(self.in_path).return_stream_types()
 		input_has_video = 'Video' in strm_types
 		input_has_aud = 'Audio' in strm_types
 		input_has_art = 'Artwork' in strm_types
@@ -538,7 +539,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 			ffmpeg_cmd = self._add_to_ren_cmd__rm_art_stream_index_selector(ffmpeg_cmd)
 
 		ffmpeg_cmd.append(self.standard_out_path)
-		Render.Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success,
+		Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success,
 			   self.print_err, self.print_ren_info, self.print_ren_time,
 			   False).check_depend_then_ren_and_embed_original_metadata(artwork=True)
 
@@ -554,7 +555,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 			print(f"Error, self.open_after_ren can't be True when extracting the frames from a video.")
 		
 		# Confirm input has a video stream and if so export each frame as an image.
-		strm_types = MetadataAcquisition.MetadataAcquisition(self.in_path).return_stream_types()
+		strm_types = MetadataAcquisition(self.in_path).return_stream_types()
 		vid_exists = 'Video' in strm_types
 		if vid_exists is False:
 			print(f'''\nError, there's no video stream to extract frames from for input:\n"{self.in_path}"\n''')
@@ -568,7 +569,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 
 			# Don't open after rendering (it doesn't have the path to the new images)
 			# and don't print the standard success message; use a custom one instead.
-			Render.Render(self.in_path, self.standard_out_path, ffmpeg_cmd,
+			Render(self.in_path, self.standard_out_path, ffmpeg_cmd,
 				   False, self.print_err, self.print_ren_info,
 				   self.print_ren_time, False).check_depend_then_ren(append_faststart=False)
 			if self.print_success is True:
@@ -588,7 +589,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 		ffmpeg_cmd = ['ffmpeg', '-i', self.in_path, '-map', '0', '-map', '-0:a']
 		
 		# This doesn't work if the input has artwork so remove it for this output (it will be added again after this).
-		strm_types = MetadataAcquisition.MetadataAcquisition(self.in_path).return_stream_types()
+		strm_types = MetadataAcquisition(self.in_path).return_stream_types()
 		has_art_stream = 'Artwork' in strm_types
 		has_vid_stream = 'Video' in strm_types
 		if has_vid_stream is False:
@@ -607,7 +608,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 
 		if shortest is True:
 			ffmpeg_cmd.append('-shortest')
-		Render.Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success,
+		Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success,
 				self.print_err, self.print_ren_info, self.print_ren_time,
 				self.open_after_ren).check_depend_then_ren_and_embed_original_metadata(artwork=True, copy_chapters=True)
 
@@ -622,7 +623,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 		NOTE: This method only works for inputs with one audio stream, not multiple. To work around this
 		use the extract_audio method before running this method since that's a very rare circumstance."""
 		# Future reader, multiple audio channels from the input could be retained by running
-		# MetadataAcquisition.MetadataAcquisition().return_stream_types() and specifying to copy over every audio stream individually.
+		# MetadataAcquisition().return_stream_types() and specifying to copy over every audio stream individually.
 		
 		self.is_type_or_print_err_and_quit(type(in_aud_path_list), list, 'in_aud_path_list')
 		for aud_path in in_aud_path_list:
@@ -637,7 +638,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 		in_aud_path_list.sort()
 		
 		# Confirm the input has a video stream.
-		strm_types = MetadataAcquisition.MetadataAcquisition(self.in_path).return_stream_types()
+		strm_types = MetadataAcquisition(self.in_path).return_stream_types()
 		has_vid_stream = 'Video' in strm_types
 		if has_vid_stream is False:
 			if self.print_err is True:
@@ -646,7 +647,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 		
 		# Confirm each input audio track actually has audio.
 		for aud_path in in_aud_path_list:
-			strm_types = MetadataAcquisition.MetadataAcquisition(aud_path).return_stream_types()
+			strm_types = MetadataAcquisition(aud_path).return_stream_types()
 			has_aud_stream = 'Audio' in strm_types
 			if has_aud_stream is False:
 				if self.print_err is True:
@@ -668,9 +669,9 @@ class FileOperations(VerifyInputType.VerifyInputType):
 
 		# Trim to the length of the video (in case a separate audio track is longer than the video).
 		if length_vid is True:
-			ffmpeg_cmd += ('-to', f'{MetadataAcquisition.MetadataAcquisition(self.in_path).return_metadata(duration=1)[0]}')
+			ffmpeg_cmd += ('-to', f'{MetadataAcquisition(self.in_path).return_metadata(duration=1)[0]}')
 		ffmpeg_cmd.append(self.standard_out_path)
-		Render.Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success, self.print_err,
+		Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success, self.print_err,
 			   self.print_ren_info, self.print_ren_time, self.open_after_ren).check_depend_then_ren()
 	
 	def change_volume(self, custom_db='3 dB', aud_only=False, print_vol_value=True):
@@ -709,7 +710,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 			print()
 		else:
 			# Get the max volume for the input.
-			vol_level = MetadataAcquisition.MetadataAcquisition(self.in_path, self.print_ren_info, self.print_ren_time,
+			vol_level = MetadataAcquisition(self.in_path, self.print_ren_info, self.print_ren_time,
 			                                print_meta_value=False).return_metadata(max_volume=1)[0]
 		
 		# If the volume is already 0 then quit, otherwise increase the volume to get to 0dB automatically.
@@ -769,7 +770,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 				              '-c:v', 'copy', '-c:s', 'copy', '-map_metadata', '0', self.standard_out_path]
 			
 			if _do_render is True:
-				ren_result = Render.Render(self.in_path, out_path, ffmpeg_cmd, self.print_success, self.print_err,
+				ren_result = Render(self.in_path, out_path, ffmpeg_cmd, self.print_success, self.print_err,
 									self.print_ren_info, self.print_ren_time,
 									self.open_after_ren).check_depend_then_ren_and_embed_original_metadata(artwork=True)
 				if print_vol_value is True and ren_result is True:
@@ -794,7 +795,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 		ffmpeg_cmd = ['ffmpeg', '-i', self.in_path]
 
 		# Determine what the artwork index may be and get stream types.
-		strm_types = MetadataAcquisition.MetadataAcquisition(self.in_path).return_stream_types()
+		strm_types = MetadataAcquisition(self.in_path).return_stream_types()
 		art_exists = 'Artwork' in strm_types
 
 		# There are no audio streams in the input file to extract so return False.
@@ -829,7 +830,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 				out_paths_list.append(out_path)
 				num_aud_stream += 1
 			
-		Render.Render(self.in_path, out_paths_list, ffmpeg_cmd, self.print_success, self.print_err,
+		Render(self.in_path, out_paths_list, ffmpeg_cmd, self.print_success, self.print_err,
 		       self.print_ren_info, self.print_ren_time, self.open_after_ren).check_depend_then_ren()
 	
 	def rm_begin_end_silence(self):
@@ -841,7 +842,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 		              ',aformat=dblp,areverse,silenceremove=start_periods=1:start_duration=0:'
 		              'start_threshold=-60dB:detection=peak,aformat=dblp,areverse', self.standard_out_path]
 		
-		Render.Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success,
+		Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success,
 			   self.print_err, self.print_ren_info, self.print_ren_time,
 		       self.open_after_ren).check_depend_then_ren_and_embed_original_metadata()
 	
@@ -933,7 +934,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 			# The entire command is there so append the output path.
 			ffmpeg_cmd.append(self.standard_out_path)
 			
-			Render.Render(self.in_path, self.standard_out_path, ffmpeg_cmd,
+			Render(self.in_path, self.standard_out_path, ffmpeg_cmd,
 			       self.print_success, self.print_err, self.print_ren_info, self.print_ren_time,
 			       self.open_after_ren).check_depend_then_ren_and_embed_original_metadata(artwork=True)
 	
@@ -967,7 +968,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 				else:
 					ffmpeg_cmd.append()
 
-		strm_types = MetadataAcquisition.MetadataAcquisition(self.in_path).return_stream_types()
+		strm_types = MetadataAcquisition(self.in_path).return_stream_types()
 		has_aud = 'Audio' in strm_types
 		if has_aud is False:
 			if self.print_err is True:
@@ -985,9 +986,9 @@ class FileOperations(VerifyInputType.VerifyInputType):
 
 		self.is_type_or_print_err_and_quit(type(right_aud_in_path), paths.Path, 'right_aud_in_path')
 
-		main_in_strm_types = MetadataAcquisition.MetadataAcquisition(self.in_path).return_stream_types()
+		main_in_strm_types = MetadataAcquisition(self.in_path).return_stream_types()
 		main_in_has_aud = 'Audio' in main_in_strm_types
-		right_aud_in_strm_types = MetadataAcquisition.MetadataAcquisition(right_aud_in_path).return_stream_types()
+		right_aud_in_strm_types = MetadataAcquisition(right_aud_in_path).return_stream_types()
 		right_aud_in_has_aud = 'Audio' in right_aud_in_strm_types
 		if main_in_has_aud is False:
 			if self.print_err is True:
@@ -1000,7 +1001,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 		else:
 			ffmpeg_cmd = ['ffmpeg', '-i', self.in_path, '-i', right_aud_in_path, '-map', '0', '-c', 'copy']
 			# ffmpeg -i input1.wav -i input2.wav -filter_complex "[0:a][1:a]amerge=inputs=2,pan=stereo|c0<c0+c2|c1<c1+c3[a]" -map "[a]" output.mp3
-			Render.Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success, self.print_err,
+			Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success, self.print_err,
 				   self.print_ren_info, self.print_ren_time, self.open_after_ren).check_depend_then_ren()
 
 	def change_image_resolution(self, keep_aspect_ratio_input_width='', conform_to_dimensions=''):
@@ -1052,7 +1053,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 		# If there are video, audio, or subtitle streams copy those to the output and change -metadata title value.
 		ffmpeg_cmd = ['ffmpeg', '-i', self.in_path, '-vf', 'scale='+scale, self.standard_out_path]
 		
-		Render.Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success, self.print_err,
+		Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success, self.print_err,
 		       self.print_ren_info, self.print_ren_time, self.open_after_ren).check_depend_then_ren()
 	
 	def crop(self, scale_dim):
@@ -1066,7 +1067,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 		# # If there are video, audio, or subtitle streams copy those to the output and change -metadata title value.
 		# ffmpeg_cmd = ['ffmpeg', '-i', self.in_path, '-vf', 'scale='+scale_dim+':-1', self.standard_out_path]
 		
-		# Render.Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success,
+		# Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success,
 		# 		 self.print_err, self.print_ren_info, self.print_ren_time,
 		#        self.open_after_ren).check_depend_then_ren(append_faststart=False)
 	
@@ -1075,7 +1076,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 		they will be cropped out. However, this has issues calculating the right dimensions if the source video is dark."""
 		# Get the dimensions to crop out black bars.
 		# Return crop_detect as the first thing in the list, then get the first (and only) item in that list; the crop dimensions.
-		crop_dim = MetadataAcquisition.MetadataAcquisition(self.in_path, print_scan_time=self.print_ren_time).return_metadata(crop_detect=1)[0]
+		crop_dim = MetadataAcquisition(self.in_path, print_scan_time=self.print_ren_time).return_metadata(crop_detect=1)[0]
 
 		if crop_dim is None:
 			if self.print_err is True:
@@ -1101,7 +1102,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 			ffmpeg_cmd = self._add_to_ren_cmd__rm_art_stream_index_selector(ffmpeg_cmd)
 					
 			ffmpeg_cmd.append(self.standard_out_path)
-			Render.Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success,
+			Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success,
 				   self.print_err, self.print_ren_info, self.print_ren_time,
 			       self.open_after_ren).check_depend_then_ren_and_embed_original_metadata(artwork=True)
 	
@@ -1111,7 +1112,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 
 		self.is_type_or_print_err_and_quit(type(rotate_frame_by_degrees), str, 'rotate_by_degrees')
 
-		strm_types = MetadataAcquisition.MetadataAcquisition(self.in_path).return_stream_types()
+		strm_types = MetadataAcquisition(self.in_path).return_stream_types()
 		has_vid = 'Video' in strm_types
 		if has_vid is False:
 			if self.print_err is True:
@@ -1121,7 +1122,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 		ffmpeg_cmd = ['ffmpeg', '-i', self.in_path, '-map', '0', '-metadata:s:v',
 		              f'rotate=-{rotate_frame_by_degrees}', '-c', 'copy', self.standard_out_path]
 
-		Render.Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success,
+		Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success,
 			   self.print_err, self.print_ren_info, self.print_ren_time,
 			   self.open_after_ren).check_depend_then_ren_and_embed_original_metadata(artwork=True)
 
@@ -1134,7 +1135,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 		self.is_type_or_print_err_and_quit(type(hflip), bool, 'hflip')
 		self.is_type_or_print_err_and_quit(type(vflip), bool, 'vflip')
 
-		strm_types = MetadataAcquisition.MetadataAcquisition(self.in_path).return_stream_types()
+		strm_types = MetadataAcquisition(self.in_path).return_stream_types()
 		has_vid = 'Video' in strm_types
 		if has_vid is False:
 			if self.print_err is True:
@@ -1161,7 +1162,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 		ffmpeg_cmd += ['-vf', hflip_cmd + vflip_cmd + f'rotate={rotate_footage_by_degrees}*(PI/180)',
 		               '-metadata:s:v','rotate=0', '-c:a', 'copy', self.standard_out_path]  
 		
-		Render.Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success,
+		Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success,
 			   self.print_err, self.print_ren_info, self.print_ren_time,
 		       self.open_after_ren).check_depend_then_ren_and_embed_original_metadata(artwork=True)
 		
@@ -1269,7 +1270,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 			ffmpeg_cmd = self._add_to_ren_cmd__rm_art_stream_index_selector(ffmpeg_cmd)
 		ffmpeg_cmd.append(full_out_path)
 		
-		ren_result = Render.Render(in_path_list, full_out_path, ffmpeg_cmd, self.print_success,
+		ren_result = Render(in_path_list, full_out_path, ffmpeg_cmd, self.print_success,
 			   				self.print_err, self.print_ren_info, self.print_ren_time,
 		       				self.open_after_ren).check_depend_then_ren_and_embed_original_metadata(artwork=True)
 		# Delete the temporary file
@@ -1336,7 +1337,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 		# Append the output path.
 		ffmpeg_cmd.append(out_path)
 		
-		Render.Render(self.in_path, out_path, ffmpeg_cmd, self.print_success,
+		Render(self.in_path, out_path, ffmpeg_cmd, self.print_success,
 			   self.print_err, self.print_ren_info, self.print_ren_time,
 		       self.open_after_ren).check_depend_then_ren_and_embed_original_metadata()
 		
@@ -1361,13 +1362,13 @@ class FileOperations(VerifyInputType.VerifyInputType):
 		ffmpeg_cmd += ('-map', '0')
 		for sub_file_index, sub_file in enumerate(in_subs_list):
 			ffmpeg_cmd += ('-map', f'{sub_file_index + 1}:0', f'-metadata:s:s:{sub_file_index}',
-						   f'language={MetadataAcquisition.MetadataAcquisition(sub_file)._return_sub_lang()}')
+						   f'language={MetadataAcquisition(sub_file)._return_sub_lang()}')
 			# -metadata:s:s:0 language=eng
 			# ffmpeg -i input.mp4 -f srt -i input.srt -i input2.srt\ -map 0:0 -map 0:1 -map 1:0 -map 2:0
 		# -c:v copy -c:a copy \ -c:s srt -c:s srt output.mkv
 		ffmpeg_cmd += ['-c', 'copy', '-c:s', 'mov_text']
 		ffmpeg_cmd.append(self.standard_out_path)
-		Render.Render(self.in_path, self.standard_out_path, ffmpeg_cmd,
+		Render(self.in_path, self.standard_out_path, ffmpeg_cmd,
 			   self.print_success, self.print_err, self.print_ren_info,
 			   self.print_ren_time, self.open_after_ren).check_depend_then_ren_and_embed_original_metadata()
 	
@@ -1380,9 +1381,9 @@ class FileOperations(VerifyInputType.VerifyInputType):
 		out_paths_list = []
 		ffmpeg_cmd = ['ffmpeg', '-i', self.in_path, '-y']
 		# Get all the streams form the input.
-		strm_types = MetadataAcquisition.MetadataAcquisition(self.in_path).return_stream_types()
+		strm_types = MetadataAcquisition(self.in_path).return_stream_types()
 		# Get language extension and ffmpeg keyword dictionary.
-		lang_key_dict = MetadataAcquisition.MetadataAcquisition(self.in_path)._return_sub_lang(check_file=False)
+		lang_key_dict = MetadataAcquisition(self.in_path)._return_sub_lang(check_file=False)
 		for strm_index, strm_cont in enumerate(strm_types):
 			# Subtitles from the streams list will be formatted as "Subtitle=xxx" so match by the beginning.
 			if strm_cont.startswith('Subtitle='):
@@ -1399,13 +1400,13 @@ class FileOperations(VerifyInputType.VerifyInputType):
 		if out_paths_list == [] and self.print_err is True:
 			print(f'\nError, no subtitles to extract were found from input:\n"{self.in_path}"\n')
 			return False
-		Render.Render(self.in_path, out_paths_list, ffmpeg_cmd, self.print_success, self.print_err,
+		Render(self.in_path, out_paths_list, ffmpeg_cmd, self.print_success, self.print_err,
 			   self.print_ren_info, self.print_ren_time, self.open_after_ren).check_depend_then_ren()
 
 	def rm_subs(self):
 		"""This method will remove any subtitles from the input."""
 		ffmpeg_cmd = ['ffmpeg', '-i', self.in_path, '-map', '0', '-c', 'copy', '-map', '-0:s', self.standard_out_path]
-		Render.Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success, self.print_err,
+		Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success, self.print_err,
 			   self.print_ren_info, self.print_ren_time, self.open_after_ren).check_depend_then_ren()		
 
 	def embed_chapters(self, timecode_title_list, add_chap_headings=True, print_new_chapters=False):
@@ -1428,11 +1429,11 @@ class FileOperations(VerifyInputType.VerifyInputType):
 		temp_rm_chap_file = paths.Path().joinpath(self.out_dir, self.in_path.stem
 		                                          + '-temp_rm_chapter' + self.in_path.suffix)
 		ffmpeg_cmd = ['ffmpeg', '-i', self.in_path, '-map', '0', '-c', 'copy', '-map_chapters', '-1', temp_rm_chap_file]
-		Render.Render(self.in_path, temp_rm_chap_file, ffmpeg_cmd, False, self.print_err,
+		Render(self.in_path, temp_rm_chap_file, ffmpeg_cmd, False, self.print_err,
 		       False, False, False).check_depend_then_ren()
 
 		# Extract metadata from temp input without chapters, export it to a txt file, and read that data.
-		meta_file_path = MetadataAcquisition.MetadataAcquisition(temp_rm_chap_file, self.print_ren_info,
+		meta_file_path = MetadataAcquisition(temp_rm_chap_file, self.print_ren_info,
 		False, print_meta_value=False).extract_metadata_txt_file()
 		existing_metadata = paths.Path(meta_file_path).read_text()
 		
@@ -1477,7 +1478,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 		# Main command and render.
 		ffmpeg_cmd = ['ffmpeg', '-i', temp_rm_chap_file, '-i', meta_file_path, '-map_metadata',
 		              '1', '-map', '0', '-c', 'copy', self.standard_out_path]
-		Render.Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success, self.print_err,
+		Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success, self.print_err,
 			   self.print_ren_info, self.print_ren_time, self.open_after_ren).check_depend_then_ren()	
 		
 		# Delete temporary input with no chapters and delete temporary text file containing the other metadata from that
@@ -1491,7 +1492,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 		ffmpeg_cmd = ['ffmpeg', '-i', self.in_path, '-map_chapters', '-1', '-c', 'copy',
 		              '-map', '0:a?', '-map', '0:v?', '-map', '0:s?', self.standard_out_path]
 		
-		Render.Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success, self.print_err,
+		Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success, self.print_err,
 			   self.print_ren_info, self.print_ren_time, self.open_after_ren).check_depend_then_ren()
 	
 	def _return_input_duration_in_sec(self, convert_str_timecode_to_sec=''):
@@ -1504,7 +1505,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 		if convert_str_timecode_to_sec != '':
 			duration = convert_str_timecode_to_sec
 		else:
-			duration = MetadataAcquisition.MetadataAcquisition(self.in_path, print_all_info=self.print_ren_info,
+			duration = MetadataAcquisition(self.in_path, print_all_info=self.print_ren_info,
 			                               print_scan_time=self.print_ren_time).return_metadata(duration=1)[0]
 
 		if duration is None or duration == 'N/A':
@@ -1561,7 +1562,7 @@ class FileOperations(VerifyInputType.VerifyInputType):
 		If there's a video stream then it's 1 (the second video stream) but if there's no video then its 0 (the first
 		video stream.) Either way return the command."""
 		# Extract all the different stream types for the input.
-		stream_types = MetadataAcquisition.MetadataAcquisition(self.in_path).return_stream_types()
+		stream_types = MetadataAcquisition(self.in_path).return_stream_types()
 
 		# If an artwork stream exists continue, otherwise return False.
 		art_stream = 'Artwork' in stream_types

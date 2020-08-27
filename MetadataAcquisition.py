@@ -1,12 +1,12 @@
-import VerifyInputType
-import Render
-
 import pathlib as paths
 import time
 import subprocess as sub
 
+from VerifyInputType import VerifyInputType
+from Render import Render
 
-class MetadataAcquisition(VerifyInputType.VerifyInputType):
+
+class MetadataAcquisition(VerifyInputType):
 	"""This class provides methods to get file metadata.
 	NOTE: return_metadata is the only method designed to be used.\n"""
 	
@@ -64,7 +64,7 @@ class MetadataAcquisition(VerifyInputType.VerifyInputType):
 				print(info_process.stderr)
 			if self.print_scan_time is True:
 				print('\n"', self.in_path, '"', sep='')
-				duration = Render.Render.terminal_render_timer(start_time, end_time, operation_keyword=' to scan')
+				duration = Render.terminal_render_timer(start_time, end_time, operation_keyword=' to scan')
 				print(duration)
 			return info_process.stderr + info_process.stdout
 		# Return True (it worked.)
