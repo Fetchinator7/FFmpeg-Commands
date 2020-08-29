@@ -1169,7 +1169,6 @@ class FileOperations(VerifyInputType):
 	def concat(self, new_basename='', new_ext='', codec_copy=True, _loop_times=0):
 		"""This method concatenates multiple files together to form one long continuous file.\n
 		WARNING: This method will not work if any of the input files have multiple audio tracks.\n
-		WARNING: This method will not work if any of the input files have chapters.
 		At this point just use the rm_chapters method before running it through this one.\n
 		NOTE: This method requires that self.in_path be a list containing every path to concatenate to output
 			in order of index. ("[in_1, in_2'")\n
@@ -1278,43 +1277,64 @@ class FileOperations(VerifyInputType):
 		return ren_result
 	
 	def compress_using_h265_and_norm_aud(self, new_res_dimensions='0000:0000', new_ext='',
-										 video_only=False, custom_db='', print_vol_value=True,
-										 maintain_multiple_aud_strms=True):
-		"""This method compresses the input video using the H.265 (HEVC) codec.\n
-		See https://trac.ffmpeg.org/wiki/Encode/H.265 for more info/\n
-		new_res_dimensions can be specified to alter the output video resolution.\n
-		new_ext can be specified to output with a different extension (".mp4")\n
-		This method automatically normalizes the output audio, but custom_db can be set to have a custom output dB level
-		("-3 dB"/"3 dB")\n
-		print_vol_value toggles whether or not to display the dB amount the output volume was changed by."""
+										 insert_pixel_format=False, video_only=False, custom_db='',
+										 print_vol_value=True, maintain_multiple_aud_strms=True):
+		"""This method compresses the input video using the H.265 (HEVC) codec.
+		See https://trac.ffmpeg.org/wiki/Encode/H.265 for more info
+
+		Args:
+			new_res_dimensions (str, optional): Can be specified to alter the output video resolution. Defaults to '0000:0000'.
+
+			new_ext (str, optional): Can be specified to output with a different extension like ".mp4". Defaults to ''.
+			insert_pixel_format (bool, optional): Will set the outout pixel format to yuv420p. This is disabled by
+				default because usually it isn't necessary, but certain input encoders like "Apple ProRes 422 HQ"
+				need the pixel format specified for the computer to play it natively. Defaults to False.
+			video_only (bool, optional): This only exports video so it won't keep audio tracks(s). Defaults to False.
+			custom_db (str, optional): This method automatically normalizes the output audio, but custom_db can be set
+				to have a custom output dB level ("-3 dB"/"3 dB"). Defaults to ''.
+			print_vol_value (bool, optional): Toggles whether or not to display the dB amount the output volume was changed by. Defaults to True.
+			maintain_multiple_aud_strms (bool, optional): toggles whether or not to maintain multiple input audio streams.
+				For example if there was an english and french track ut would only keep the english one by default.
+				NOTE: the loudnorm only checks the first audio channel and raises every audio channel by that amount so the other
+				audio streams could end up clipping depending on their different volume levels. Defaults to True.
+
+		Returns:
+			True: It was successful.
+			False: Received invalid input file extension.
+		"""
 		
 		# Confirm all the inputs are the correct types.
 		self.is_type_or_print_err_and_quit(type(new_res_dimensions), str, 'new_res_dimensions')
 		self.is_type_or_print_err_and_quit(type(new_ext), str, 'new_ext')
+		self.is_type_or_print_err_and_quit(type(insert_pixel_format), bool, 'insert_pixel_format')
 		self.is_type_or_print_err_and_quit(type(video_only), bool, 'video_only')
 		self.is_type_or_print_err_and_quit(type(custom_db), str, 'custom_db')
 		self.is_type_or_print_err_and_quit(type(print_vol_value), bool, 'print_vol_value')
-		
-		# Confirm new_ext is valid.
-		if self.in_path.suffix != '.mp4' and self.in_path.suffix != '.mov' and self.in_path.suffix != '.mkv':
-			print(f'\nError, H.265 compression is not supported for input extension "{self.in_path.suffix}" '
+		self.is_type_or_print_err_and_quit(type(maintain_multiple_aud_strms), bool, 'maintain_multiple_aud_strms')
+
+		# The input file extension is referenced multiple times so give it a variable.
+		in_ext = self.in_path.suffix
+
+		# Check if the input extension is compatible with H265 compression.
+		if in_ext != '.mp4' and in_ext != '.mov' and in_ext != '.mkv':
+			print(f'\nError, H.265 compression is not supported for input extension "{in_ext}" '
 			      f'from input:\n"{self.in_path}"\n')
 			return False
-		# Invalid input extension
+		# Invalid input extension.
 		elif new_ext != '' and new_ext != '.mp4' and new_ext != '.mov' and new_ext != '.mkv':
 			print(f'Error, target output extension, "{new_ext}" '
-			      f'is not supported for H.265 compression but the input extension "{self.in_path.suffix}" '
+			      f'is not supported for H.265 compression but the input extension "{in_ext}" '
 			      'is valid so the output extension will not be modified.')
 		
-		# new_ext was not specified and or input extension is valid so output path is the standard output path.
-		out_path = self.standard_out_path
+		# -start_at_zero will have the output timecode start at zero (incase the input timecode doesn't start at zero)
+		# and '-tag:v', 'hvc1' tells macs that it can play the output video file.
+		ffmpeg_cmd = ['ffmpeg', '-i', self.in_path, '-map_metadata', '0', '-map', '0:v', '-c:s', 'copy', '-c:v', 'libx265',
+                    '-preset', 'fast', '-crf', '20', '-start_at_zero', '-tag:v', 'hvc1']
 		
-		# '-pix_fmt', 'yuv420p' is specified in case the input video is prores, and '-tag:v', 'hvc1' tells macs that
-		#  it can play the output video file.
-		ffmpeg_cmd = ['ffmpeg', '-i', self.in_path, '-map_metadata', '0', '-map', '0:v', '-pix_fmt', 'yuv420p', '-c:s',
-					  'copy', '-c:v', 'libx265', '-preset', 'slow', '-crf', '18', '-start_at_zero', '-tag:v', 'hvc1']
-		
-		# Add the audio part of the command by scanning input for dB amount to raise by.
+		# * Add '-pix_fmt', 'yuv420p' in case the input video is prores or some other weird encoder.
+		if insert_pixel_format is True:
+			ffmpeg_cmd += ('-pix_fmt', 'yuv420p')
+
 		if video_only is True:
 			ffmpeg_cmd.append('-an')
 		else:
@@ -1330,17 +1350,17 @@ class FileOperations(VerifyInputType):
 			if audio_cmd is not None and audio_cmd is not False:
 				ffmpeg_cmd += audio_cmd
 		
-		# If a new resolution was specified then append that to ren_cmd, else, append empty list (nothing)
+		# If a new resolution was specified then append that to ren_cmd.
 		if new_res_dimensions != '0000:0000':
 			ffmpeg_cmd += ('-vf', 'scale=' + new_res_dimensions)
 		
 		# Append the output path.
-		ffmpeg_cmd.append(out_path)
+		ffmpeg_cmd.append(self.standard_out_path)
 		
-		Render(self.in_path, out_path, ffmpeg_cmd, self.print_success,
+		Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success,
 			   self.print_err, self.print_ren_info, self.print_ren_time,
 		       self.open_after_ren).check_depend_then_ren_and_embed_original_metadata()
-		
+
 		return True
 
 	def embed_subs(self, in_subs_list):
