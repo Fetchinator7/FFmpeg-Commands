@@ -279,7 +279,7 @@ class FileOperations(VerifyInputType):
 			       self.open_after_ren).check_depend_then_ren(append_faststart=False)
 		return True
 	
-	def change_ext(self, new_ext, codec_copy):
+	def change_ext(self, new_ext, codec_copy=False):
 		"""This method changes the self.in_path extension to new_ext."""
 		
 		self.is_type_or_print_err_and_quit(type(new_ext), str, 'new_ext')
@@ -1320,10 +1320,10 @@ class FileOperations(VerifyInputType):
 			      f'from input:\n"{self.in_path}"\n')
 			return False
 		
-		# -start_at_zero will have the output timecode start at zero (incase the input timecode doesn't start at zero)
-		# and '-tag:v', 'hvc1' tells macs that it can play the output video file.
-		ffmpeg_cmd = ['ffmpeg', '-i', self.in_path, '-map_metadata', '0', '-map', '0:v', '-c:s', 'copy', '-c:v', 'libx265',
-                    '-preset', 'fast', '-crf', '20', '-start_at_zero', '-tag:v', 'hvc1']
+		# Remove all metadata for this output because for some reason it can cause weird bugs when trying to convert
+		# the file afterwards and '-tag:v', 'hvc1' tells macs that it can play the output video file.
+		ffmpeg_cmd = ['ffmpeg', '-ss', '0:0', '-i', self.in_path, '-map_metadata', '-1', '-map', '0:v', '-c:s', 'copy',
+					'-c:v', 'libx265', '-preset', 'fast', '-crf', '20', '-tag:v', 'hvc1']
 		
 		# * Add '-pix_fmt', 'yuv420p' in case the input video is prores or some other weird encoder.
 		if insert_pixel_format is True:
