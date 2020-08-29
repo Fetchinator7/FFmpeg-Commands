@@ -12,7 +12,7 @@ This just lists the different methods available. See the files themselves for me
 
 - embed_artwork(in_artwork=**FilePath**)
 - concat(self, new_basename=**String**, new_ext=**String**, codec_copy=**Boolean**):
-- compress_using_h265_and_norm_aud(self, new_res_dimensions=**String**, new_ext=**String**, video_only=**Boolean**, custom_db=**String**, print_vol_value=**Boolean**, maintain_multiple_aud_strms=**Boolean**):
+- compress_using_h265_and_norm_aud(self, new_res_dimensions=**String**, new_ext=**String**, insert_pixel_format=**Boolean**, video_only=**Boolean**, custom_db=**String**, print_vol_value=**Boolean**, maintain_multiple_aud_strms=**Boolean**):
 - rm_begin_end_silence()
 - fade_begin_and_or_end__audio_and_or_video(fade_vid=**Boolean**, fade_aud=**Boolean**, fade_begin=**Boolean**, fade_end=**Boolean**, fade_dur_sec=**Int**, fade_out_at_sec=**Int**)
 - change_metadata(metadata_keyword=**String**, ...)
