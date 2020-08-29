@@ -1278,7 +1278,7 @@ class FileOperations(VerifyInputType):
 		temp_paths_txt_file.unlink()
 		return ren_result
 	
-	def compress_using_h265_and_norm_aud(self, new_res_dimensions='0000:0000', new_ext='',
+	def compress_using_h265_and_norm_aud(self, new_res_dimensions='0000:0000',
 										 insert_pixel_format=False, video_only=False, custom_db='',
 										 print_vol_value=True, maintain_multiple_aud_strms=True):
 		"""This method compresses the input video using the H.265 (HEVC) codec.
@@ -1286,7 +1286,6 @@ class FileOperations(VerifyInputType):
 
 		Args:
 			new_res_dimensions (str, optional): Can be specified to alter the output video resolution. Defaults to '0000:0000'.
-			new_ext (str, optional): Can be specified to output with a different extension like ".mp4". Defaults to ''.
 			insert_pixel_format (bool, optional): Will set the outout pixel format to yuv420p. This is disabled by
 				default because usually it isn't necessary, but certain input encoders like "Apple ProRes 422 HQ"
 				need the pixel format specified for the computer to play it natively. Defaults to False.
@@ -1306,7 +1305,6 @@ class FileOperations(VerifyInputType):
 		
 		# Confirm all the inputs are the correct types.
 		self.is_type_or_print_err_and_quit(type(new_res_dimensions), str, 'new_res_dimensions')
-		self.is_type_or_print_err_and_quit(type(new_ext), str, 'new_ext')
 		self.is_type_or_print_err_and_quit(type(insert_pixel_format), bool, 'insert_pixel_format')
 		self.is_type_or_print_err_and_quit(type(video_only), bool, 'video_only')
 		self.is_type_or_print_err_and_quit(type(custom_db), str, 'custom_db')
@@ -1315,18 +1313,6 @@ class FileOperations(VerifyInputType):
 
 		# The input file extension is referenced multiple times so give it a variable.
 		in_ext = self.in_path.suffix
-		# Default to having the output path use the new_ext but it will be changed if that's invalid.
-		if new_ext != '':
-			# Check for invalid input extension.
-			if new_ext != '.mp4' and new_ext != '.mov' and new_ext != '.mkv':
-				print(f'Error, target output extension, "{new_ext}" '
-					f'is not supported for H.265 compression but the input extension "{in_ext}" '
-					'is valid so the output extension will not be modified.')
-				out_path = self.standard_out_path
-			else:
-				out_path = paths.Path.joinpath(self.out_dir, self.in_path.stem + new_ext)
-		else:
-			out_path = self.standard_out_path
 
 		# Check if the input extension is compatible with H265 compression.
 		if in_ext != '.mp4' and in_ext != '.mov' and in_ext != '.mkv':
@@ -1363,9 +1349,9 @@ class FileOperations(VerifyInputType):
 			ffmpeg_cmd += ('-vf', 'scale=' + new_res_dimensions)
 		
 		# Append the output path.
-		ffmpeg_cmd.append(out_path)
+		ffmpeg_cmd.append(self.standard_out_path)
 		
-		Render(self.in_path, out_path, ffmpeg_cmd, self.print_success,
+		Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success,
 			   self.print_err, self.print_ren_info, self.print_ren_time,
 		       self.open_after_ren).check_depend_then_ren_and_embed_original_metadata()
 
