@@ -734,12 +734,11 @@ class FileOperations(VerifyInputType):
 			return False
 		else:
 			if custom_db != '':
+				vol_db_change = 'volume=-' + vol_level
 				if custom_db[0] == '-':
 					vol_change_keyword = 'decreased'
-					vol_db_change = 'volume=-' + vol_level
 				else:
 					vol_change_keyword = 'increased'
-					vol_db_change = 'volume=' + vol_level
 			elif vol_level[0] == '-':
 				vol_change_keyword = 'increased'
 				vol_db_change = 'volume=' + vol_level[1:]
@@ -1284,7 +1283,6 @@ class FileOperations(VerifyInputType):
 
 		Args:
 			new_res_dimensions (str, optional): Can be specified to alter the output video resolution. Defaults to '0000:0000'.
-
 			new_ext (str, optional): Can be specified to output with a different extension like ".mp4". Defaults to ''.
 			insert_pixel_format (bool, optional): Will set the outout pixel format to yuv420p. This is disabled by
 				default because usually it isn't necessary, but certain input encoders like "Apple ProRes 422 HQ"
@@ -1314,17 +1312,24 @@ class FileOperations(VerifyInputType):
 
 		# The input file extension is referenced multiple times so give it a variable.
 		in_ext = self.in_path.suffix
+		# Default to having the output path use the new_ext but it will be changed if that's invalid.
+		if new_ext != '':
+			# Check for invalid input extension.
+			if new_ext != '.mp4' and new_ext != '.mov' and new_ext != '.mkv':
+				print(f'Error, target output extension, "{new_ext}" '
+					f'is not supported for H.265 compression but the input extension "{in_ext}" '
+					'is valid so the output extension will not be modified.')
+				out_path = self.standard_out_path
+			else:
+				out_path = paths.Path.joinpath(self.out_dir, self.in_path.stem + new_ext)
+		else:
+			out_path = self.standard_out_path
 
 		# Check if the input extension is compatible with H265 compression.
 		if in_ext != '.mp4' and in_ext != '.mov' and in_ext != '.mkv':
 			print(f'\nError, H.265 compression is not supported for input extension "{in_ext}" '
 			      f'from input:\n"{self.in_path}"\n')
 			return False
-		# Invalid input extension.
-		elif new_ext != '' and new_ext != '.mp4' and new_ext != '.mov' and new_ext != '.mkv':
-			print(f'Error, target output extension, "{new_ext}" '
-			      f'is not supported for H.265 compression but the input extension "{in_ext}" '
-			      'is valid so the output extension will not be modified.')
 		
 		# -start_at_zero will have the output timecode start at zero (incase the input timecode doesn't start at zero)
 		# and '-tag:v', 'hvc1' tells macs that it can play the output video file.
@@ -1355,9 +1360,9 @@ class FileOperations(VerifyInputType):
 			ffmpeg_cmd += ('-vf', 'scale=' + new_res_dimensions)
 		
 		# Append the output path.
-		ffmpeg_cmd.append(self.standard_out_path)
+		ffmpeg_cmd.append(out_path)
 		
-		Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success,
+		Render(self.in_path, out_path, ffmpeg_cmd, self.print_success,
 			   self.print_err, self.print_ren_info, self.print_ren_time,
 		       self.open_after_ren).check_depend_then_ren_and_embed_original_metadata()
 
