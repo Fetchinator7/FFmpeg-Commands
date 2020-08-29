@@ -1278,7 +1278,8 @@ class FileOperations(VerifyInputType):
 		return ren_result
 	
 	def compress_using_h265_and_norm_aud(self, new_res_dimensions='0000:0000', new_ext='',
-										 video_only=False, custom_db='', print_vol_value=True):
+										 video_only=False, custom_db='', print_vol_value=True,
+										 maintain_multiple_aud_strms=True):
 		"""This method compresses the input video using the H.265 (HEVC) codec.\n
 		See https://trac.ffmpeg.org/wiki/Encode/H.265 for more info/\n
 		new_res_dimensions can be specified to alter the output video resolution.\n
@@ -1310,14 +1311,17 @@ class FileOperations(VerifyInputType):
 		
 		# '-pix_fmt', 'yuv420p' is specified in case the input video is prores, and '-tag:v', 'hvc1' tells macs that
 		#  it can play the output video file.
-		ffmpeg_cmd = ['ffmpeg', '-i', self.in_path, '-map_metadata', '0', '-pix_fmt', 'yuv420p', '-c:s', 'copy', '-c:v',
-		              'libx265', '-preset', 'slow', '-crf', '18', '-start_at_zero', '-tag:v', 'hvc1']
+		ffmpeg_cmd = ['ffmpeg', '-i', self.in_path, '-map_metadata', '0', '-map', '0:v', '-pix_fmt', 'yuv420p', '-c:s',
+					  'copy', '-c:v', 'libx265', '-preset', 'slow', '-crf', '18', '-start_at_zero', '-tag:v', 'hvc1']
 		
 		# Add the audio part of the command by scanning input for dB amount to raise by.
 		if video_only is True:
 			ffmpeg_cmd.append('-an')
 		else:
-			ffmpeg_cmd += ['-c:a', 'aac', '-b:a', '48k']
+			# Be default this render only maintains one audio stream so if
+			# there are multiple audio streams they have to be mapped manually.
+			if maintain_multiple_aud_strms:
+				ffmpeg_cmd = self._add_to_ren_cmd__map_all_strms_of_type(self.in_path, 'Audio', ffmpeg_cmd)
 			
 			# Scan input file for dB amount to increase by and method returns ffmpeg audio cmds.
 			# If it's already at 0.0 dB then it will return None.
@@ -1328,11 +1332,7 @@ class FileOperations(VerifyInputType):
 		
 		# If a new resolution was specified then append that to ren_cmd, else, append empty list (nothing)
 		if new_res_dimensions != '0000:0000':
-			new_res_cmd = ['-vf', 'scale=' + new_res_dimensions]
-		else:
-			new_res_cmd = []
-		for res_cmd in new_res_cmd:
-			ffmpeg_cmd.append(res_cmd)
+			ffmpeg_cmd += ('-vf', 'scale=' + new_res_dimensions)
 		
 		# Append the output path.
 		ffmpeg_cmd.append(out_path)
@@ -1366,8 +1366,7 @@ class FileOperations(VerifyInputType):
 			# -metadata:s:s:0 language=eng
 			# ffmpeg -i input.mp4 -f srt -i input.srt -i input2.srt\ -map 0:0 -map 0:1 -map 1:0 -map 2:0
 		# -c:v copy -c:a copy \ -c:s srt -c:s srt output.mkv
-		ffmpeg_cmd += ['-c', 'copy', '-c:s', 'mov_text']
-		ffmpeg_cmd.append(self.standard_out_path)
+		ffmpeg_cmd += ('-c', 'copy', '-c:s', 'mov_text', self.standard_out_path)
 		Render(self.in_path, self.standard_out_path, ffmpeg_cmd,
 			   self.print_success, self.print_err, self.print_ren_info,
 			   self.print_ren_time, self.open_after_ren).check_depend_then_ren_and_embed_original_metadata()
@@ -1582,4 +1581,15 @@ class FileOperations(VerifyInputType):
 		else:
 			rm_strm = '0'
 		ffmpeg_cmd += ('-map', ('-0:v:'+rm_strm))
+		return ffmpeg_cmd
+
+	def _add_to_ren_cmd__map_all_strms_of_type(self, in_path, strm_type, ffmpeg_cmd):
+		"""."""
+		# Extract all the different stream types for the input.
+		strm_types = MetadataAcquisition(in_path).return_stream_types()
+		for strm_index, strm in enumerate(strm_types):
+			# Map the output if it's an audio stream.
+			if strm == strm_type:
+				ffmpeg_cmd += ['-map', f'0:{strm_index}']
+
 		return ffmpeg_cmd
