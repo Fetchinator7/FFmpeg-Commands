@@ -279,7 +279,7 @@ class FileOperations(VerifyInputType):
 			       self.open_after_ren).check_depend_then_ren(append_faststart=False)
 		return True
 	
-	def change_ext(self, new_ext):
+	def change_ext(self, new_ext, codec_copy):
 		"""This method changes the self.in_path extension to new_ext."""
 		
 		self.is_type_or_print_err_and_quit(type(new_ext), str, 'new_ext')
@@ -287,7 +287,10 @@ class FileOperations(VerifyInputType):
 		# Path to output file with the new target extension.
 		new_ext_out_path = paths.Path().joinpath(self.out_dir, self.in_path.stem + new_ext)
 		
-		ffmpeg_cmd = ['ffmpeg', '-i', self.in_path, new_ext_out_path]
+		ffmpeg_cmd = ['ffmpeg', '-i', self.in_path]
+		if codec_copy is True:
+			ffmpeg_cmd += ('-c', 'copy')
+		ffmpeg_cmd.append(new_ext_out_path)
 		
 		# Confirm the target output extension isn't the same as the input extension.
 		# If it is the same extension then print a message and just copy the file.
