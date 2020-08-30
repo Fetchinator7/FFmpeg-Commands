@@ -342,25 +342,34 @@ class FileOperations(VerifyInputType):
 					print(f'''Error, there's no length to trim from input "{self.in_path}"\n''')
 				return False
 		
-		if start_timecode != '':
-			if self._return_input_duration_in_sec(start_timecode) > sec_dur:
-				if self.print_err is True:
-					print(f'''Error, the starting timecode "{start_timecode}" is greater than the length of input:\n"{self.in_path}"\n''')
-				return False
-		if stop_timecode != '':
-			if self._return_input_duration_in_sec(stop_timecode) > sec_dur:
-				if self.print_err is True:
-					print(f'''Error, the output can't go until end timecode "{stop_timecode}" '''
-					      f'''because that's greater than the length of input:\n"{self.in_path}"\n''')
-
 		# -ss is the timecode to begin file at and -to is the timecode to end at.
 		# (There's also the -t option which is a relative trim, i.e. 15 seconds after the start timecode but -t isn't
 		# used for this method.)
 		ffmpeg_cmd = ['ffmpeg']
+		start_duration_seconds = ''
 		if start_timecode != '':
-			ffmpeg_cmd += ('-ss', start_timecode)
+			start_duration_seconds = self._return_input_duration_in_sec(start_timecode)
+			if start_duration_seconds > sec_dur:
+				if self.print_err is True:
+					print(f'''Error, the starting timecode "{start_timecode}" is greater than the length of input:\n"{self.in_path}"\n''')
+				return False
+			else:
+				ffmpeg_cmd += ('-ss', start_timecode)
+		stop_duration_seconds = ''
 		if stop_timecode != '':
-			ffmpeg_cmd += ('-to', stop_timecode)
+			stop_duration_seconds = self._return_input_duration_in_sec(stop_timecode)
+			if stop_duration_seconds > sec_dur:
+				if self.print_err is True:
+					print(f'''Error, the output won't go until the end timecode "{stop_timecode}" '''
+					      f'''because that's greater than the length of the input:\n"{self.in_path}"\n''')
+			else:
+				ffmpeg_cmd += ('-to', stop_timecode)
+		if start_timecode != '' and stop_timecode != '':
+			if stop_duration_seconds < start_duration_seconds:
+				if self.print_err is True:
+					print(f'Error, the output timecode "{stop_timecode}" has to be after the input timecode "{start_timecode}"')
+				return False
+
 		ffmpeg_cmd += ('-i', self.in_path)
 		end_cmd = ['-shortest', '-map_chapters', '-1', self.standard_out_path]
 		if self.in_path.suffix == '.m4a':
@@ -1552,8 +1561,8 @@ class FileOperations(VerifyInputType):
 		except ValueError:
 			if self.print_err is True:
 				print(f'Error, unable to calculate timecode duration for input "{duration}"\nTimecode numbers must be '
-				      f'in a "00:00:00.00" format, down to "0", no more than ".00" digits, and if fractions of a second'
-				      f'are specified they must have a leading "0" for example "0.4"')
+				      f'in a "00:00:00.00" format, with a minimum of one number, no more than 2 digits after a period (".00") '
+					  f'and if fractions of a second are specified they must have a leading number ("0.4")')
 			quit()
 
 		# Add up total seconds (there are 3600 seconds in an hour and 60 seconds in a minute.)
