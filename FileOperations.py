@@ -354,6 +354,7 @@ class FileOperations(VerifyInputType):
 			# -ss is the timecode to begin file at and -to is the timecode to end at.
 			# (There's also the -t option which is a relative trim, i.e. 15 seconds after the start timecode but -t isn't
 			# used for this method.)
+			ffmpeg_cmd = ['ffmpeg']
 			start_duration_seconds = ''
 			if start_timecode != '':
 				start_duration_seconds = self._return_input_duration_in_sec(start_timecode)
@@ -361,6 +362,9 @@ class FileOperations(VerifyInputType):
 					if self.print_err is True:
 						print(f'''Error, the starting timecode "{start_timecode}" is greater than the length of input:\n"{self.in_path}"\n''')
 					return False
+				else:
+					# * It's added here because if the start_timecode isn't specified adding (-ss '') will break it.
+					ffmpeg_cmd += ('-ss', start_timecode)
 			stop_duration_seconds = ''
 			if stop_timecode != '':
 				stop_duration_seconds = self._return_input_duration_in_sec(stop_timecode)
@@ -368,6 +372,9 @@ class FileOperations(VerifyInputType):
 					if self.print_err is True:
 						print(f'''Error, the output won't go until the end timecode "{stop_timecode}" '''
 							f'''because that's greater than the length of the input:\n"{self.in_path}"\n''')
+					else:
+						# * It's added here because if the stop_timecode isn't specified adding (-to '') will break it.
+						ffmpeg_cmd += ('-to', stop_timecode)
 			if start_timecode != '' and stop_timecode != '':
 				if stop_duration_seconds < start_duration_seconds:
 					if self.print_err is True:
