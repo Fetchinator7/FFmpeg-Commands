@@ -380,9 +380,6 @@ class FileOperations(VerifyInputType):
 					if self.print_err is True:
 						print(f'Error, the output timecode "{stop_timecode}" has to be after the input timecode "{start_timecode}"')
 					return False
-		# If the trim ranges were verified and turned out to be invalid
-		# it will return false so this block wouldn't be reached.
-		ffmpeg_cmd += ('-ss', start_timecode, '-to', stop_timecode)
 
 		ffmpeg_cmd += ('-i', self.in_path)
 		end_cmd = ['-shortest', '-map_chapters', '-1', self.standard_out_path]
