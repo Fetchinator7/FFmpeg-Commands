@@ -125,6 +125,14 @@ class FileOperations(VerifyInputType):
 
 		Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success, self.print_err,
 		       self.print_ren_info, self.print_ren_time, self.open_after_ren).check_depend_then_ren()
+		
+	def rm_metadata(self):
+		"""This method will not maintain any metadata values from the input to the output."""
+
+		ffmpeg_cmd = ['ffmpeg', '-i', self.in_path, '-map', '0', '-c', 'copy', '-map_chapters', '-1', '-map_metadata', '-1', '-map', '-0:s', self.standard_out_path]
+
+		Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success, self.print_err,
+		       self.print_ren_info, self.print_ren_time, self.open_after_ren).check_depend_then_ren()
 
 	def change_file_name_and_meta_title(self, new_title):
 		"""This method changes the filename and metadata title of a file."""
@@ -335,40 +343,39 @@ class FileOperations(VerifyInputType):
 				print(f'Error, no video or audio streams to trim were found from input\n"{self.in_path}"')
 			return False
 		
+		ffmpeg_cmd = ['ffmpeg']
 		if verify_trim_ranges == True:
 			sec_dur = self._return_input_duration_in_sec()
 			if sec_dur is None or sec_dur < 1:
 				if self.print_err is True:
 					print(f'''Error, there's no length to trim from input "{self.in_path}"\n''')
 				return False
-		
-		# -ss is the timecode to begin file at and -to is the timecode to end at.
-		# (There's also the -t option which is a relative trim, i.e. 15 seconds after the start timecode but -t isn't
-		# used for this method.)
-		ffmpeg_cmd = ['ffmpeg']
-		start_duration_seconds = ''
-		if start_timecode != '':
-			start_duration_seconds = self._return_input_duration_in_sec(start_timecode)
-			if start_duration_seconds > sec_dur:
-				if self.print_err is True:
-					print(f'''Error, the starting timecode "{start_timecode}" is greater than the length of input:\n"{self.in_path}"\n''')
-				return False
-			else:
-				ffmpeg_cmd += ('-ss', start_timecode)
-		stop_duration_seconds = ''
-		if stop_timecode != '':
-			stop_duration_seconds = self._return_input_duration_in_sec(stop_timecode)
-			if stop_duration_seconds > sec_dur:
-				if self.print_err is True:
-					print(f'''Error, the output won't go until the end timecode "{stop_timecode}" '''
-					      f'''because that's greater than the length of the input:\n"{self.in_path}"\n''')
-			else:
-				ffmpeg_cmd += ('-to', stop_timecode)
-		if start_timecode != '' and stop_timecode != '':
-			if stop_duration_seconds < start_duration_seconds:
-				if self.print_err is True:
-					print(f'Error, the output timecode "{stop_timecode}" has to be after the input timecode "{start_timecode}"')
-				return False
+
+			# -ss is the timecode to begin file at and -to is the timecode to end at.
+			# (There's also the -t option which is a relative trim, i.e. 15 seconds after the start timecode but -t isn't
+			# used for this method.)
+			start_duration_seconds = ''
+			if start_timecode != '':
+				start_duration_seconds = self._return_input_duration_in_sec(start_timecode)
+				if start_duration_seconds > sec_dur:
+					if self.print_err is True:
+						print(f'''Error, the starting timecode "{start_timecode}" is greater than the length of input:\n"{self.in_path}"\n''')
+					return False
+			stop_duration_seconds = ''
+			if stop_timecode != '':
+				stop_duration_seconds = self._return_input_duration_in_sec(stop_timecode)
+				if stop_duration_seconds > sec_dur:
+					if self.print_err is True:
+						print(f'''Error, the output won't go until the end timecode "{stop_timecode}" '''
+							f'''because that's greater than the length of the input:\n"{self.in_path}"\n''')
+			if start_timecode != '' and stop_timecode != '':
+				if stop_duration_seconds < start_duration_seconds:
+					if self.print_err is True:
+						print(f'Error, the output timecode "{stop_timecode}" has to be after the input timecode "{start_timecode}"')
+					return False
+		# If the trim ranges were verified and turned out to be invalid
+		# it will return false so this block wouldn't be reached.
+		ffmpeg_cmd += ('-ss', start_timecode, '-to', stop_timecode)
 
 		ffmpeg_cmd += ('-i', self.in_path)
 		end_cmd = ['-shortest', '-map_chapters', '-1', self.standard_out_path]
@@ -746,7 +753,7 @@ class FileOperations(VerifyInputType):
 			return False
 		else:
 			if custom_db != '':
-				vol_db_change = 'volume=-' + vol_level
+				vol_db_change = 'volume=' + vol_level
 				if custom_db[0] == '-':
 					vol_change_keyword = 'decreased'
 				else:
@@ -824,7 +831,6 @@ class FileOperations(VerifyInputType):
 		
 		# Empty list that will have the audio output paths appended to it enabling it to print a success message.
 		out_paths_list = []
-		num_aud_stream = 1
 		for strm_index, strm in enumerate(strm_types):
 			# Map the output if it's an audio stream.
 			if strm == 'Audio':
@@ -834,12 +840,11 @@ class FileOperations(VerifyInputType):
 					ffmpeg_cmd += ('-map', f'0:v:{art_strm_index}')
 				if order_out_names is True:
 					out_path = paths.Path().joinpath(self.out_dir, self.in_path.stem
-					                                 + f'-Audio Track {num_aud_stream}' + out_ext)
+					                                 + f'-Audio Track {strm_index + 1}' + out_ext)
 				else:
 					out_path = paths.Path().joinpath(self.out_dir, self.in_path.stem + out_ext)
 				ffmpeg_cmd.append(out_path)
 				out_paths_list.append(out_path)
-				num_aud_stream += 1
 			
 		Render(self.in_path, out_paths_list, ffmpeg_cmd, self.print_success, self.print_err,
 		       self.print_ren_info, self.print_ren_time, self.open_after_ren).check_depend_then_ren()
@@ -1289,7 +1294,8 @@ class FileOperations(VerifyInputType):
 	
 	def compress_using_h265_and_norm_aud(self, new_res_dimensions='0000:0000',
 										 insert_pixel_format=False, video_only=False, custom_db='',
-										 print_vol_value=True, maintain_multiple_aud_strms=True):
+										 print_vol_value=True, maintain_multiple_aud_strms=True,
+										 speed_preset=''):
 		"""This method compresses the input video using the H.265 (HEVC) codec.
 		See https://trac.ffmpeg.org/wiki/Encode/H.265 for more info
 
@@ -1306,6 +1312,11 @@ class FileOperations(VerifyInputType):
 				For example if there was an english and french track ut would only keep the english one by default.
 				NOTE: the loudnorm only checks the first audio channel and raises every audio channel by that amount so the other
 				audio streams could end up clipping depending on their different volume levels. Defaults to True.
+			speed_preset (str, optional):
+				This command is setup to use the "speed" preset to determine how quickly the output will be rendered
+				(which impacts the output size and quality). It defaults to "fast" but this way it can be made faster or slower if desired.
+				fast, superfast, slow, etc. See https://trac.ffmpeg.org/wiki/Encode/H.265 for the complete list.
+				Defaults to ''.
 
 		Returns:
 			True: It was successful.
@@ -1319,6 +1330,7 @@ class FileOperations(VerifyInputType):
 		self.is_type_or_print_err_and_quit(type(custom_db), str, 'custom_db')
 		self.is_type_or_print_err_and_quit(type(print_vol_value), bool, 'print_vol_value')
 		self.is_type_or_print_err_and_quit(type(maintain_multiple_aud_strms), bool, 'maintain_multiple_aud_strms')
+		self.is_type_or_print_err_and_quit(type(speed_preset), str, 'speed_preset')
 
 		# The input file extension is referenced multiple times so give it a variable.
 		in_ext = self.in_path.suffix
@@ -1329,10 +1341,15 @@ class FileOperations(VerifyInputType):
 			      f'from input:\n"{self.in_path}"\n')
 			return False
 		
+		if speed_preset != '':
+			speed = speed_preset
+		else:
+			speed = 'fast'
+
 		# Remove all metadata for this output because for some reason it can cause weird bugs when trying to convert
 		# the file afterwards and '-tag:v', 'hvc1' tells macs that it can play the output video file.
 		ffmpeg_cmd = ['ffmpeg', '-ss', '0:0', '-i', self.in_path, '-map_metadata', '-1', '-map', '0:v', '-c:s', 'copy',
-					'-c:v', 'libx265', '-preset', 'fast', '-crf', '20', '-tag:v', 'hvc1']
+					  '-c:v', 'libx265', '-preset', speed, '-crf', '20', '-tag:v', 'hvc1']
 		
 		# * Add '-pix_fmt', 'yuv420p' in case the input video is prores or some other weird encoder.
 		if insert_pixel_format is True:
@@ -1345,6 +1362,8 @@ class FileOperations(VerifyInputType):
 			# there are multiple audio streams they have to be mapped manually.
 			if maintain_multiple_aud_strms:
 				ffmpeg_cmd = self._add_to_ren_cmd__map_all_strms_of_type(self.in_path, 'Audio', ffmpeg_cmd)
+			else:
+				ffmpeg_cmd += ('-map', '0:a?')
 			
 			# Scan input file for dB amount to increase by and method returns ffmpeg audio cmds.
 			# If it's already at 0.0 dB then it will return None.
@@ -1610,9 +1629,13 @@ class FileOperations(VerifyInputType):
 		"""."""
 		# Extract all the different stream types for the input.
 		strm_types = MetadataAcquisition(in_path).return_stream_types()
-		for strm_index, strm in enumerate(strm_types):
-			# Map the output if it's an audio stream.
-			if strm == strm_type:
-				ffmpeg_cmd += ['-map', f'0:{strm_index}']
+		if strm_types != None:
+			for strm_index, strm in enumerate(strm_types):
+				# Map the output if it's an audio stream.
+				if strm == strm_type:
+					ffmpeg_cmd += ['-map', f'0:{strm_index}']
+		else:
+			if self.print_err is True:
+				print(f'Error, no "{strm_type}" streams were found to maintain for input:\n"{in_path}""')
 
 		return ffmpeg_cmd

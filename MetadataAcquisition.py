@@ -232,33 +232,36 @@ class MetadataAcquisition(VerifyInputType):
 		
 		# Get one long string of all the info about the input file then split that into a list.
 		strm_types = self.return_metadata(every_stream_info=1)[0]
-		strm_types = strm_types.splitlines()
-		# List of the stream types from the input.
-		strm_types_list = []
-		for strm in strm_types:
-			for stream_str_index in range(len(strm)):
-				if strm[stream_str_index:stream_str_index + 5] == 'Video':
-					if strm[-14:] == '(attached pic)':
-						strm_types_list.append('Artwork')
-						break
-					else:
-						strm_types_list.append('Video')
-						break
-				elif strm[stream_str_index:stream_str_index + 5] == 'Audio':
-					strm_types_list.append('Audio')
-					break
-				elif strm[stream_str_index:stream_str_index + 4] == 'Data':
-					strm_types_list.append('Chapter')
-					break
-				# If the stream is a subtitle then "restart" the loop and get the language before the "Stream" keyword.
-				elif strm[stream_str_index:stream_str_index + 8] == 'Subtitle':
-					for ffmpeg_strm_index, ffmpeg_strm_str in enumerate(strm):
-						if ffmpeg_strm_str == '(':
-							strm_types_list.append(f'Subtitle={strm[ffmpeg_strm_index + 1:ffmpeg_strm_index + 4]}')
+		try:
+			strm_types = strm_types.splitlines()
+			# List of the stream types from the input.
+			strm_types_list = []
+			for strm in strm_types:
+				for stream_str_index in range(len(strm)):
+					if strm[stream_str_index:stream_str_index + 5] == 'Video':
+						if strm[-14:] == '(attached pic)':
+							strm_types_list.append('Artwork')
 							break
-				else:
-					pass
-		return strm_types_list
+						else:
+							strm_types_list.append('Video')
+							break
+					elif strm[stream_str_index:stream_str_index + 5] == 'Audio':
+						strm_types_list.append('Audio')
+						break
+					elif strm[stream_str_index:stream_str_index + 4] == 'Data':
+						strm_types_list.append('Chapter')
+						break
+					# If the stream is a subtitle then "restart" the loop and get the language before the "Stream" keyword.
+					elif strm[stream_str_index:stream_str_index + 8] == 'Subtitle':
+						for ffmpeg_strm_index, ffmpeg_strm_str in enumerate(strm):
+							if ffmpeg_strm_str == '(':
+								strm_types_list.append(f'Subtitle={strm[ffmpeg_strm_index + 1:ffmpeg_strm_index + 4]}')
+								break
+					else:
+						pass
+			return strm_types_list
+		except AttributeError:
+			return None
 	
 	def extract_metadata_txt_file(self):
 		"""This method extracts all the metadata from the input file into an output text file."""
