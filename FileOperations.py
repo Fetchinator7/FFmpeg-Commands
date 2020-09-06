@@ -372,9 +372,9 @@ class FileOperations(VerifyInputType):
 					if self.print_err is True:
 						print(f'''Error, the output won't go until the end timecode "{stop_timecode}" '''
 							f'''because that's greater than the length of the input:\n"{self.in_path}"\n''')
-					else:
-						# * It's added here because if the stop_timecode isn't specified adding (-to '') will break it.
-						ffmpeg_cmd += ('-to', stop_timecode)
+				else:
+					# * It's added here because if the stop_timecode isn't specified adding (-to '') will break it.
+					ffmpeg_cmd += ('-to', stop_timecode)
 			if start_timecode != '' and stop_timecode != '':
 				if stop_duration_seconds < start_duration_seconds:
 					if self.print_err is True:
