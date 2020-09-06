@@ -380,6 +380,11 @@ class FileOperations(VerifyInputType):
 					if self.print_err is True:
 						print(f'Error, the output timecode "{stop_timecode}" has to be after the input timecode "{start_timecode}"')
 					return False
+		else:
+			if start_timecode != '':
+				ffmpeg_cmd += ('-ss', start_timecode)
+			if stop_timecode != '':
+				ffmpeg_cmd += ('-to', stop_timecode)
 
 		ffmpeg_cmd += ('-i', self.in_path)
 		end_cmd = ['-shortest', '-map_chapters', '-1', self.standard_out_path]
@@ -1299,7 +1304,7 @@ class FileOperations(VerifyInputType):
 	def compress_using_h265_and_norm_aud(self, new_res_dimensions='0000:0000',
 										 insert_pixel_format=False, video_only=False, custom_db='',
 										 print_vol_value=True, maintain_multiple_aud_strms=True,
-										 speed_preset=''):
+										 speed_preset='', maintain_metadata=True):
 		"""This method compresses the input video using the H.265 (HEVC) codec.
 		See https://trac.ffmpeg.org/wiki/Encode/H.265 for more info
 
@@ -1321,6 +1326,10 @@ class FileOperations(VerifyInputType):
 				(which impacts the output size and quality). It defaults to "fast" but this way it can be made faster or slower if desired.
 				fast, superfast, slow, etc. See https://trac.ffmpeg.org/wiki/Encode/H.265 for the complete list.
 				Defaults to ''.
+			maintain_metadata (bool, optional):
+				Be default metadata is copied from the input file to the output file but this can cause problems
+				sometimes depending on the codec so add the option to not keep the input metadata.
+				Defaults to ''.
 
 		Returns:
 			True: It was successful.
@@ -1335,6 +1344,7 @@ class FileOperations(VerifyInputType):
 		self.is_type_or_print_err_and_quit(type(print_vol_value), bool, 'print_vol_value')
 		self.is_type_or_print_err_and_quit(type(maintain_multiple_aud_strms), bool, 'maintain_multiple_aud_strms')
 		self.is_type_or_print_err_and_quit(type(speed_preset), str, 'speed_preset')
+		self.is_type_or_print_err_and_quit(type(maintain_metadata), bool, 'maintain_metadata')
 
 		# The input file extension is referenced multiple times so give it a variable.
 		in_ext = self.in_path.suffix
@@ -1383,9 +1393,14 @@ class FileOperations(VerifyInputType):
 		# Append the output path.
 		ffmpeg_cmd.append(self.standard_out_path)
 		
-		Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success,
-			   self.print_err, self.print_ren_info, self.print_ren_time,
-		       self.open_after_ren).check_depend_then_ren_and_embed_original_metadata()
+		if maintain_metadata is True:
+			Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success,
+				   self.print_err, self.print_ren_info, self.print_ren_time,
+				   self.open_after_ren).check_depend_then_ren_and_embed_original_metadata()
+		else:
+			Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success,
+				   self.print_err, self.print_ren_info, self.print_ren_time,
+				   self.open_after_ren).check_depend_then_ren()
 
 		return True
 
