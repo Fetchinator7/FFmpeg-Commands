@@ -667,7 +667,7 @@ class FileOperations(VerifyInputType):
 		
 		# Confirm the input has a video stream.
 		strm_types = MetadataAcquisition(self.in_path).return_stream_types()
-		has_vid_stream = 'Video' in strm_types
+		has_vid_stream = strm_types is None or 'Video' in strm_types
 		if has_vid_stream is False:
 			if self.print_err is True:
 				print(f'Error, no video stream to keep found from input:\n{self.in_path}')
@@ -676,14 +676,14 @@ class FileOperations(VerifyInputType):
 		# Confirm each input audio track actually has audio.
 		for aud_path in in_aud_path_list:
 			strm_types = MetadataAcquisition(aud_path).return_stream_types()
-			has_aud_stream = 'Audio' in strm_types
+			has_aud_stream = strm_types is None or 'Audio' in strm_types
 			if has_aud_stream is False:
 				if self.print_err is True:
 					print(f'Error, no audio stream to add found from input:\n{aud_path}')
 				return False
-		else:
-			ffmpeg_cmd += ('-i', aud_path)
-			num_valid_in_aud += 1
+			else:
+				ffmpeg_cmd += ('-i', aud_path)
+				num_valid_in_aud += 1
 
 		# Copy over any video, audio, and subtitle streams from the original video input and set audio language to
 		# English. https://ffmpeg.org/ffmpeg.html#Stream-specifiers-1
