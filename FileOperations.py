@@ -803,11 +803,51 @@ class FileOperations(VerifyInputType):
 				if print_vol_value is True and ren_result is True:
 					print(f'The volume was {vol_change_keyword} by {db_amount}\n')
 	
+	def dynaudnorm(self, gausssize=31, framelen_ms=500, maxgain=10.0, targetrms=0.0, compress=0.0, threshold=0.0, out_aud_ext=''):
+		"""This method dynamically normalize the volume of the input
+		See https://ffmpeg.org/ffmpeg-all.html#toc-dynaudnorm for more info
+
+		Args:
+			gausssize (int, optional): Set the Gaussian filter window size. In range from 3 to 301, must be odd number. Using a larger window results in a stronger smoothing effect and thus in less gain variation, i.e. slower gain adaptation. Conversely, using a smaller window results in a weaker smoothing effect and thus in more gain variation, i.e. faster gain adaptation.
+			framelen_ms (int, optional): Set the frame length in milliseconds. In range from 10 to 8000 milliseconds. While a "standard" normalizer would simply use the peak magnitude of the complete file, the Dynamic Audio Normalizer determines the peak magnitude individually for each frame.
+			maxgain (float, optional): Set the maximum gain factor in the range from 1.0 to 100.0. This is done in order to avoid excessive gain factors in "silent" or almost silent frames.
+			targetrms (float, optional): Set the target RMS. In range from 0.0 to 1.0. Default is 0.0 - disabled. By adjusting all frames to a constant RMS value, a uniform "perceived loudness" can be established.
+			compress (float, optional): Set the compress factor. In range from 0.0 to 30.0. By default, the Dynamic Audio Normalizer does not apply "traditional" compression. This means that signal peaks will not be pruned and thus the full dynamic range will be retained within each local neighborhood. In general, smaller parameters result in stronger compression, and vice versa. Values below 3.0 are not recommended, because audible distortion may appear.
+			threshold (float, optional): The default value is set to 0, which means all input frames will be normalized. If the input frame volume is above this value frame will be normalized. This option is mostly useful if digital noise is not wanted to be amplified.
+			out_aud_ext (str, optional): Allows you to specify what the output extension should be instead of the current extension.
+		"""
+		
+		# Confirm all the inputs are the correct types.
+		self.is_type_or_print_err_and_quit(type(gausssize), int, 'gausssize')
+		self.is_type_or_print_err_and_quit(type(framelen_ms), int, 'framelen_ms')
+		self.is_type_or_print_err_and_quit(type(maxgain), float, 'maxgain')
+		self.is_type_or_print_err_and_quit(type(targetrms), float, 'targetrms')
+		self.is_type_or_print_err_and_quit(type(compress), float, 'compress')
+		self.is_type_or_print_err_and_quit(type(threshold), float, 'threshold')
+		self.is_type_or_print_err_and_quit(type(out_aud_ext), str, 'out_aud_ext')
+
+		# Remove all metadata for this output because for some reason it can cause weird bugs when trying to convert
+		# the file afterwards and '-tag:v', 'hvc1' tells macs that it can play the output video file.
+		ffmpeg_cmd = ['ffmpeg', '-i', self.in_path, '-map', '0', '-af', f'dynaudnorm=g={gausssize}:f={framelen_ms}:m={maxgain}:r={targetrms}:s={compress}:t={threshold}']
+		
+		# Option to change the extension for the output audio.
+		if out_aud_ext == '':
+			out_ext = self.in_path.suffix
+		else:
+			out_ext = out_aud_ext
+		out_path = paths.Path().joinpath(self.out_dir, self.in_path.stem + out_ext)
+		# # Append the output path.
+		ffmpeg_cmd.append(out_path)
+
+		Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success,
+				self.print_err, self.print_ren_info, self.print_ren_time,
+				self.open_after_ren).check_depend_then_ren()
+	
 	def extract_audio(self, out_aud_ext='', order_out_names=True):
 		"""This method extracts audio track(s) from the input.\n
 		This is primarily intended for use with video files that have multiple audio tracks
 		because otherwise you can just use the change_ext method.
-		out_aud_ext allows you sto specify the the output extension should be.
+		out_aud_ext allows you to specify what the output extension should be.
 		order_out_names will append "-Audio Track {number}" to the output basename(s)"""
 		
 		self.is_type_or_print_err_and_quit(type(out_aud_ext), str, 'out_aud_ext')
