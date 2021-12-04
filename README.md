@@ -8,7 +8,9 @@ This just lists the different methods available. See the files themselves for me
 
 ### [FileOperations init](hhttps://github.com/Fetchinator7/FFmpeg-Commands/blob/ecb1ef73118d1ad490acaf511a442a73ef2a4ec4/FileOperations.py#L13-L21)
 
-- loudnorm_stereo(custom_db=**String**, aud_only=**Boolean**, print_vol_value=**True**, _do_render=**Boolean**)
+- loudnorm_stereo(custom_db=**String**, aud_only=**Boolean**, print_vol_value=**True**,_do_render=**Boolean**)
+- dynaudnorm(gausssize=**Int**, framelen_ms=**Int**, maxgain=**Float**, targetrms=**Float**, compress=**Float**, threshold=**Float**, out_aud_ext=**String**)
+- speechnorm(peak=**Float**, expansion=**Float**, compression=**Float**, threshold=**Float**, raise_by=**Float**, fall=**Float**, out_aud_ext=**String**)
 
 - embed_artwork(in_artwork=**FilePath**)
 - concat(self, new_basename=**String**, new_ext=**String**, codec_copy=**Boolean**):
@@ -70,7 +72,7 @@ Python3 is also required. See [Download Python3](https://www.python.org/download
 
 The module is setup to only accept pathlib paths so that will need to be imported into any files you'll be using to call the ffmpeg commands from.
 
-``` python
+```python
 import pathlib
 import ffmpeg_cmds as fc
 

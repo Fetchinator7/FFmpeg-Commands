@@ -804,7 +804,7 @@ class FileOperations(VerifyInputType):
 					print(f'The volume was {vol_change_keyword} by {db_amount}\n')
 	
 	def dynaudnorm(self, gausssize=31, framelen_ms=500, maxgain=10.0, targetrms=0.0, compress=0.0, threshold=0.0, out_aud_ext=''):
-		"""This method dynamically normalize the volume of the input
+		"""This method dynamically normalizes the volume of the input
 		See https://ffmpeg.org/ffmpeg-all.html#toc-dynaudnorm for more info
 
 		Args:
@@ -829,6 +829,46 @@ class FileOperations(VerifyInputType):
 		# Remove all metadata for this output because for some reason it can cause weird bugs when trying to convert
 		# the file afterwards and '-tag:v', 'hvc1' tells macs that it can play the output video file.
 		ffmpeg_cmd = ['ffmpeg', '-i', self.in_path, '-map', '0', '-af', f'dynaudnorm=g={gausssize}:f={framelen_ms}:m={maxgain}:r={targetrms}:s={compress}:t={threshold}']
+		
+		# Option to change the extension for the output audio.
+		if out_aud_ext == '':
+			out_ext = self.in_path.suffix
+		else:
+			out_ext = out_aud_ext
+		out_path = paths.Path().joinpath(self.out_dir, self.in_path.stem + out_ext)
+		# # Append the output path.
+		ffmpeg_cmd.append(out_path)
+
+		Render(self.in_path, self.standard_out_path, ffmpeg_cmd, self.print_success,
+				self.print_err, self.print_ren_info, self.print_ren_time,
+				self.open_after_ren).check_depend_then_ren()
+
+	def speechnorm(self, peak=0.95, expansion=2.0, compression=2.0, threshold=0.0, raise_by=0.001, fall=0.001, out_aud_ext=''):
+		"""This method dynamically normalizes the volume of the input specifically designed for voices
+		See https://ffmpeg.org/ffmpeg-filters.html#toc-speechnorm for more info
+
+		Args:
+			peak (int, optional): Set the expansion target peak value in the range 0.0 to 1.0. This specifies the highest allowed absolute amplitude level for the normalized audio input.
+			expansion (int, optional): Set the maximum expansion factor in the range 1.0 to 50.0. Dictates for much a quieter section is allowed to be raised by.
+			compression (float, optional): Set the maximum compression factor in the range 1.0 to 50.0. This option is used only if threshold option is set to value greater than 0.0, then in such cases when local peak is lower or same as value set by threshold all samples belonging to that peak’s half-cycle will be compressed by current compression factor.
+			threshold (float, optional): Set the threshold value in the range 0.0 to 1.0. This option specifies which half-cycles of samples will be compressed and which will be expanded. Any half-cycle samples with their local peak value below or same as this option value will be compressed by current compression factor, otherwise, if greater than threshold value they will be expanded with expansion factor so that it could reach peak target value but never surpass it.
+			raise_by (int, optional): Set the expansion raising amount per each half-cycle of samples in the range 0.0 to 1.0. This controls how fast expansion factor is raised per each new half-cycle until it reaches expansion value. Setting this options too high may lead to distortions.
+			fall (float, optional): Set the compression raising amount per each half-cycle of samples in the range 0.0 to 1.0. This controls how fast compression factor is raised per each new half-cycle until it reaches compression value.
+			out_aud_ext (str, optional): Allows you to specify what the output extension should be instead of the current extension.
+		"""
+		
+		# Confirm all the inputs are the correct types.
+		self.is_type_or_print_err_and_quit(type(peak), float, 'peak')
+		self.is_type_or_print_err_and_quit(type(expansion), float, 'expansion')
+		self.is_type_or_print_err_and_quit(type(compression), float, 'compression')
+		self.is_type_or_print_err_and_quit(type(threshold), float, 'threshold')
+		self.is_type_or_print_err_and_quit(type(raise_by), float, 'raise_by')
+		self.is_type_or_print_err_and_quit(type(fall), float, 'fall')
+		self.is_type_or_print_err_and_quit(type(out_aud_ext), str, 'out_aud_ext')
+
+		# Remove all metadata for this output because for some reason it can cause weird bugs when trying to convert
+		# the file afterwards and '-tag:v', 'hvc1' tells macs that it can play the output video file.
+		ffmpeg_cmd = ['ffmpeg', '-i', self.in_path, '-map', '0', '-af', f'speechnorm=p={peak}:e={expansion}:c={compression}:t={threshold}:r={raise_by}:f={fall}']
 		
 		# Option to change the extension for the output audio.
 		if out_aud_ext == '':
